@@ -1,2 +1,2 @@
 # battle-line
-Computer players for a two-player card game inspired by poker
+Computer players for a poker-inspired two-player card game
