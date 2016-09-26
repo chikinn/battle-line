@@ -98,13 +98,21 @@ class Round(object):
         # Discard card from hand, then attempt to draw a new card.
         """Drop the card and draw a new one."""
         if self.decks[deckName] != []:
+            hand.drop(card)
             hand.add(self.draw(deckName))
             return True
-        return False # Deck is empty.
+        else:
+            hand.drop(card)
+            hand.add(self.draw('tactics'))
+            return False # Deck is empty.
 
     def get_play(self, p):
         """Retrieve and execute AI p's play for whoever's turn it is."""
         card, target, deckName = p.play(self)
+        if card == None:
+            print('pass')
+            return
+
         me = self.whoseTurn
         hand = self.h[me]
 
@@ -122,11 +130,12 @@ class Round(object):
                 self.replace_card(card, hand, deckName)
                 if card in self.best['cards']:
                     self.best = self.best_empty()
-                self.cardsLeft.remove(card)
+                self.cardsLeft['troop'].remove(card)
 
         if self.verbosity == 'verbose':
-            print(self.zazz[1] + ' {} [{}] {}s {}'\
-                    .format(hand.name, 'derp', 'derp', 'derp'))
+            hand.show(self.zazz[1])
+            print(self.zazz[1] + '{} plays {}'\
+                    .format(hand.name, card))
             self.zazz[1] = ' ' * len(self.zazz[1])
 
     def check_formation_components(self, cards, formationSize=3):
@@ -169,7 +178,7 @@ class Round(object):
             fType = 'sum'
 
         return {'cards':cards,
-                'formation':fType,
+                'type':fType,
                 'strength':sum([int(c[0]) for c in cards])}
 
     def possible_straights(self, cards, formationSize=3):
@@ -215,16 +224,16 @@ class Round(object):
             possibleStraights = self.possible_straights(cards, formationSize)
 
         if straight and flush:
-            for straight in possibleStraights:
-                for value in straight:
+            for s in possibleStraights:
+                for value in s:
                     card = value + firstSuit
                     if card not in self.cardsLeft['troop']:
                         break
                 else:
                     return self.detect_formation(cards +\
-                             [value + firstSuit for value in straight])
+                             [value + firstSuit for value in s])
 
-        elif triple:
+        if triple:
             formation = copy.copy(cards)         ###
             for card in self.cardsLeft['troop']: ### TODO: loop through suits
                 if card[0] == firstValue:        ### instead, more efficiently.
@@ -232,7 +241,7 @@ class Round(object):
                     if len(formation) == formationSize:
                         return self.detect_formation(formation)
 
-        elif flush: ### TODO: too similar to triple block above; consolidate?
+        if flush: ### TODO: too similar to triple block above; consolidate?
             formation = copy.copy(cards)
             for value in TROOP_CONTENTS[::-1]:
                 if value + firstSuit in self.cardsLeft['troop']:
@@ -240,10 +249,10 @@ class Round(object):
                     if len(formation) == formationSize:
                         return self.detect_formation(formation)
 
-        elif straight: ### TODO: optimize.
-            for straight in possibleStraights:
+        if straight: ### TODO: optimize.
+            for s in possibleStraights:
                 formation = copy.copy(cards)
-                for value in straight:
+                for value in s:
                     for card in self.cardsLeft['troop']:
                         if card[0] == value: # Value is available.
                             formation.append(card)
@@ -253,41 +262,42 @@ class Round(object):
                 else: # All values are available.
                     return self.detect_formation(formation)
 
-        else: # Sum
-            cardsLeft = sorted(cardsLeft['troop'], reverse=True) # Hi to lo
-            nEmptySlots = formationSize - len(cards)
-            return self.detect_formation(cards + cardsLeft[:nEmptySlots])
+        # Sum
+        cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
+        nEmptySlots = formationSize - len(cards)
+        return self.detect_formation(cards + cardsLeft[:nEmptySlots])
 
     def best_empty(self):
         """Find best formation still playable at an empty flag (self.best)."""
         oldBest = self.best ### TODO: Exclude better formations from search.
 
-        cardsLeft = sorted(cardsLeft['troop'], reverse=True) # Hi to lo
+        cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
         for fType in POKER_HIERARCHY:
             if fType == 'sum':
                 return best_case(self, [cardsLeft[0]])
             
-            elif fType == 'flush':
+            if fType == 'flush':
                 bestSoFar = {'strength':0}
                 for card in cardsLeft:
-                    bestCase = best_case(self, [card])
+                    bestCase = self.best_case([card])
                     if bestCase['type'] == fType:
                         if bestCase['strength'] > bestSoFar['strength']:
                             bestSoFar = bestCase
-                return bestSoFar
+                if bestSoFar['strength'] > 0:
+                    return bestSoFar
 
-            else: ### TODO: Don't double-check same-valued triples, straights.
-                for card in cardsLeft:
-                    bestCase = best_case(self, [card])
-                    if bestCase['type'] == fType:
-                        return bestCase
+            ### TODO: Don't double-check same-valued triples, straights.
+            for card in cardsLeft:
+                bestCase = self.best_case([card])
+                if bestCase['type'] == fType:
+                    return bestCase
 
     def compare_formations(self, formations):
-        ranks = (POKER_HIERARCHY.index(f['type']) for f in formations)
+        ranks = [POKER_HIERARCHY.index(f['type']) for f in formations]
         if ranks[0] != ranks[1]:
             return ranks.index(min(ranks))
         else: # Same formation type
-            strengths = (f['strength'] for f in formations)
+            strengths = [f['strength'] for f in formations]
             if strengths[0] != strengths[1]:
                 return strengths.index(max(strengths))
             else: # Identical formations
@@ -314,14 +324,15 @@ class Round(object):
                     finishedPlayers.append(player)
             
             if len(finishedPlayers) == 2: # Both players ready 
-                flag['winner'] = compare_formations(formations)
+                flag['winner'] = self.compare_formations(list(map(self.detect_formation, formations)))
             elif len(finishedPlayers) == 1: # One attacker seeks a proof.
                 for player in (0, 1):
                     if player not in finishedPlayers: # Defender
                         formations[player] = copy.copy(flag['best'][player])
                         # Tie goes to attacker since he finished first.
                         formations[player]['strength'] -= EPSILON
-                        if compare_formations(formations) == 1 - player:
+                        formations[1 - player] = self.detect_formation(formations[1 - player])
+                        if self.compare_formations(formations) == 1 - player:
                             flag['winner'] = 1 - player # Attacker wins.
 
     def check_winner(self):
@@ -331,10 +342,19 @@ class Round(object):
             if flagOutcomes.count(player) >= STANDARD_WIN:
                 return player
 
-#        for i in range(len(flagOutcomes)):
+        breakthroughStreak = 0
+        streakHolder = None
+        for i in range(N_FLAGS):
+            if flagOutcomes[i] != None:
+                if flagOutcomes[i] == streakHolder:
+                    breakthroughStreak += 1
+                    if breakthroughStreak == BREAKTHROUGH_WIN:
+                        return streakHolder
+                else:
+                    streakHolder = flagOutcomes[i]
+                    breakthroughStreak = 1
 
-
-
+        return None
 
     def get_scout_discard(self):
         pass

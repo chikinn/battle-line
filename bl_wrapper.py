@@ -79,8 +79,7 @@ for i in range(args.n_rounds):
         print('\n' + 'ROUND {}:'.format(i))
     winners.append(play_one_round(players, names, args.verbosity))
     if args.verbosity != 'silent':
-        print('Score: ' + str(score))
-    player_end_game_logging(players)
+        print('Winner: ' + str(winners[-1]))
 
 # Print average scores.
 if args.verbosity != 'silent':
