@@ -57,7 +57,7 @@ class Round(object):
                 [v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-3:]]) # Red 7, 8, 9
         self.best = initialBest # Best formation reachable at an empty flag
 
-        self.flags = ({'played':{[], []}, ### TODO: turn flags into objects.
+        self.flags = ({'played':[[], []], ### TODO: turn flags into objects.
                        'best':(initialBest, initialBest),
                        'fog':False,
                        'mud':False,
