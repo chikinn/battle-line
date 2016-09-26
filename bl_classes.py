@@ -117,8 +117,8 @@ class Round(object):
             if flag['mud']:
                 formationSize += 1
 
-            if len(flag[me]) < formationSize: # Legal play
-                flag[me].append(card)
+            if len(flag['played'][me]) < formationSize: # Legal play
+                flag['played'][me].append(card)
                 self.replace_card(card, hand, deckName)
                 if card in self.best['cards']:
                     self.best = self.best_empty()
