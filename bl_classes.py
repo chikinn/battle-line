@@ -5,7 +5,7 @@ this file is the Round class, which stores all of the game info, along with
 the nested Hand class, which stores player-specific info.
 """
 
-import random, sys
+import random, sys, copy
 
 N_FLAGS          = 9
 STANDARD_WIN     = 5
@@ -13,24 +13,19 @@ BREAKTHROUGH_WIN = 3
 FORMATION_SIZE   = 3
 TROOP_SUITS      = 'roygbp'
 TROOP_CONTENTS   = '0123456789' # 0 is lowest.
-TACTICS          = {'Al':'Alexander',
-                    'CC':'Companion Cavalry',
-                    'Da':'Darius',
-                    'De':'Deserter',
-                    'Fo':'Fog',
-                    'Mu':'Mud',
-                    'Re':'Redeploy',
-                    'Sc':'Scout',
-                    'SB':'Shield Bearers',
-                    'Tr':'Traitor'}
+TACTICS          = {'Al':'Alexander',      'Co':'Companion Cavalry',
+                    'Da':'Darius',         'De':'Deserter',
+                    'Fo':'Fog',            'Mu':'Mud',
+                    'Re':'Redeploy',       'Sc':'Scout',
+                    'Sh':'Shield Bearers', 'Tr':'Traitor'}
 HAND_SIZE        = 7
 POKER_HIERARCHY  = ('straight flush', 'triple', 'flush', 'straight', 'sum')
 EPSILON          = 0.1 # Arbitrary number on (0,1) to break formation ties
 
 class Player(object):
-    """AIPlayer class that should be inherited from when making"""
-    def __init__(self):
-        super(AIPlayer, self).__init__()
+    """Class that should be inherited from when making"""
+    def __init__(self, me, verbosity):
+        super(Player, self).__init__()
 
     @classmethod
     def get_name(cls):
@@ -39,8 +34,8 @@ class Player(object):
 
     def play(self, r):
         """Must be overridden to perform a play"""
-        raise Exception("AIPlayer must override this method")
-
+        raise Exception("Must override this method")
+        pass
 
 class Round(object):
     """Store round info and interact with AI players.
@@ -55,17 +50,18 @@ class Round(object):
     def __init__(self, players, names, verbosity):
         """Instantiate a Round and its Hand sub-objects."""
         self.nPlayers = len(names)
+        self.winner = None
         self.h = (self.Hand(i, names[i]) for i in range(self.nPlayers))
 
         initialBest = self.detect_formation(
                 [v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-3:]]) # Red 7, 8, 9
-        self.flags = ({'played':{[], []},
+        self.best = initialBest # Best formation reachable at an empty flag
+
+        self.flags = ({'played':{[], []}, ### TODO: turn flags into objects.
                        'best':(initialBest, initialBest),
                        'fog':False,
                        'mud':False,
-                       'winner':None}
-                      for _ in range(N_FLAGS))
-        self.best = initialBest
+                       'winner':None} for _ in range(N_FLAGS))
 
         self.whoseTurn = 0
 
@@ -98,8 +94,8 @@ class Round(object):
         """Remove and return the top card of the deck."""
         return self.decks[deckName].pop()
 
-    # Discard card from hand, then attempt to draw a new card.
     def replace_card(self, card, hand, deckName):
+        # Discard card from hand, then attempt to draw a new card.
         """Drop the card and draw a new one."""
         if self.decks[deckName] != []:
             hand.add(self.draw(deckName))
@@ -116,8 +112,6 @@ class Round(object):
             pass
 
         else: # Troop
-            self.replace_card(card, hand, deckName)
-
             flag = self.flags[target]
             formationSize = FORMATION_SIZE
             if flag['mud']:
@@ -125,6 +119,10 @@ class Round(object):
 
             if len(flag[me]) < formationSize: # Legal play
                 flag[me].append(card)
+                self.replace_card(card, hand, deckName)
+                if card in self.best['cards']:
+                    self.best = self.best_empty()
+                self.cardsLeft.remove(card)
 
         if self.verbosity == 'verbose':
             print(self.zazz[1] + ' {} [{}] {}s {}'\
@@ -189,7 +187,7 @@ class Round(object):
                     break
             else:
                 possibleStraight = list(straight)
-                for value in cardValues: # Skip cards already in hand.
+                for value in cardValues: # Skip cards that are already played.
                     possibleStraight.remove(value)
                 out.append(list(map(str, possibleStraight)))
 
@@ -199,67 +197,90 @@ class Round(object):
         """Return whether a card might still be available to draw and play."""
         return True
     
-    def best_case(self, cards, formationSize=3):
+    def best_case(self, cards, formationSize=3): ### TODO: tactics
         """Return the best possible continuation of a formation."""
-        # Ignore tactics for now.
+        if len(cards) == formationSize:
+            return detect_formation(cards)
 
         if cards == []:
-            return self.best
+            if formationSize == 3:
+                return self.best
+            else:
+                pass ### TODO: Mud
 
+        firstSuit, firstValue = cards[0]
         straight, triple, flush = self.check_formation_components(cards)
 
         if straight:
             possibleStraights = self.possible_straights(cards, formationSize)
-            print(possibleStraights)
 
         if straight and flush:
-            suit = cards[0][1]
             for straight in possibleStraights:
                 for value in straight:
-                    card = value + suit
+                    card = value + firstSuit
                     if card not in self.cardsLeft['troop']:
                         break
                 else:
                     return self.detect_formation(cards +\
-                             [value + suit for value in straight])
+                             [value + firstSuit for value in straight])
 
         elif triple:
-            for value in values:
-                count = 0
-                for card in cards + self.cardsLeft['troop']:
-                    if card[0] == value:
-                        count += 1
-                        if count == formationSize:
-                            return {'type'     : 'triple',
-                                    'strength' : int(value) * formationSize}
+            formation = copy.copy(cards)         ###
+            for card in self.cardsLeft['troop']: ### TODO: loop through suits
+                if card[0] == firstValue:        ### instead, more efficiently.
+                    formation += [card]          ###
+                    if len(formation) == formationSize:
+                        return self.detect_formation(formation)
 
-#        elif flush:
-#            for suit in suits:
-#                strengths = []
-#                for value in TROOP_CONTENTS:
-#                    if value + suit in cards or\
-#                       value + suit in self.cardsLeft['troop']:
-#                        strengths.append(int(value))
-#                        if len(strengths) == formationSize:
-#                            return {'type'     : 'flush',
-#                                    'strength' : sum(strengths)}
-#
-#        elif straight:
-#            for value in TROOP_CONTENTS:
-#                numbersAvailable = (c[0] for c in cards +\
-#                                                  self.cardsLeft['troop'])
-#                v = int(value)
-#                candidateFormation = range(v, v - formationSize, -1)
-#                for candidate in candidateFormation:
-#                    if c not in numbersAvailable:
-#                        break
-#                else:
-#                    return {'type'     : 'straight',
-#                            'strength' : sum(candidateFormation)}
-#
-#        else: # Sum
-#            pass
+        elif flush: ### TODO: too similar to triple block above; consolidate?
+            formation = copy.copy(cards)
+            for value in TROOP_CONTENTS[::-1]:
+                if value + firstSuit in self.cardsLeft['troop']:
+                    formation.append(value + firstSuit)
+                    if len(formation) == formationSize:
+                        return self.detect_formation(formation)
 
+        elif straight: ### TODO: optimize.
+            for straight in possibleStraights:
+                formation = copy.copy(cards)
+                for value in straight:
+                    for card in self.cardsLeft['troop']:
+                        if card[0] == value: # Value is available.
+                            formation.append(card)
+                            break
+                    else: # Value is not available.
+                        break
+                else: # All values are available.
+                    return self.detect_formation(formation)
+
+        else: # Sum
+            cardsLeft = sorted(cardsLeft['troop'], reverse=True) # Hi to lo
+            nEmptySlots = formationSize - len(cards)
+            return self.detect_formation(cards + cardsLeft[:nEmptySlots])
+
+    def best_empty(self):
+        """Find best formation still playable at an empty flag (self.best)."""
+        oldBest = self.best ### TODO: Exclude better formations from search.
+
+        cardsLeft = sorted(cardsLeft['troop'], reverse=True) # Hi to lo
+        for fType in POKER_HIERARCHY:
+            if fType == 'sum':
+                return best_case(self, [cardsLeft[0]])
+            
+            elif fType == 'flush':
+                bestSoFar = {'strength':0}
+                for card in cardsLeft:
+                    bestCase = best_case(self, [card])
+                    if bestCase['type'] == fType:
+                        if bestCase['strength'] > bestSoFar['strength']:
+                            bestSoFar = bestCase
+                return bestSoFar
+
+            else: ### TODO: Don't double-check same-valued triples, straights.
+                for card in cardsLeft:
+                    bestCase = best_case(self, [card])
+                    if bestCase['type'] == fType:
+                        return bestCase
 
     def compare_formations(self, formations):
         ranks = (POKER_HIERARCHY.index(f['type']) for f in formations)
@@ -273,29 +294,47 @@ class Round(object):
                 # Tie breaks against current player, who finished later.
                 return 1 - self.whoseTurn
 
+    def update_flag(self, flag, justPlayed):
+        """Find the new best continuation at the flag, if necessary."""
+        for player in (0, 1):
+            if justPlayed in flag['best'][player]:
+                flag['best'][player] = self.best_case(flag['played'][player])
+
     def check_flag(self, flag):
+        """Determine whether a flag is won, either normally or by proof."""
         if flag['winner'] == None:
             formationSize = FORMATION_SIZE
             if flag['mud']:
                 formationSize += 1
 
+            formations = copy.copy(flag['played'])
             finishedPlayers = []
             for player in (0, 1):
-                if len(flag[player]) == formationSize:
+                if len(formations[player]) == formationSize:
                     finishedPlayers.append(player)
             
-            formations = (flag[0], flag[1])
             if len(finishedPlayers) == 2: # Both players ready 
                 flag['winner'] = compare_formations(formations)
             elif len(finishedPlayers) == 1: # One attacker seeks a proof.
                 for player in (0, 1):
                     if player not in finishedPlayers: # Defender
-                        formations[player] = best_case(formations[player],
-                                                       formationSize)
+                        formations[player] = copy.copy(flag['best'][player])
                         # Tie goes to attacker since he finished first.
                         formations[player]['strength'] -= EPSILON
                         if compare_formations(formations) == 1 - player:
                             flag['winner'] = 1 - player # Attacker wins.
+
+    def check_winner(self):
+        flagOutcomes = [f['winner'] for f in self.flags]
+
+        for player in (0, 1):
+            if flagOutcomes.count(player) >= STANDARD_WIN:
+                return player
+
+        for i in range(len(flagOutcomes)):
+
+
+
 
     def get_scout_discard(self):
         pass
@@ -324,7 +363,7 @@ class Round(object):
             """Print cards (verbose output only)."""
             print(zazz + ' ' + self.name + ': ' + ' '.join(self.cards))
 
-        def add(self, newCard, turnNumber):
+        def add(self, newCard):
             """Add a card to the hand."""
             self.cards.append(newCard)
 

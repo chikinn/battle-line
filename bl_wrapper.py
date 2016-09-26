@@ -14,21 +14,21 @@ Command-line arguments (see usage):
 
 import sys, argparse, logging, random
 from play_bl import play_one_round
-from bl_classes import AIPlayer
-from players import *
+from bl_classes import Player
+from players import random_player
 
 availablePlayers = {}
-for playerSubClass in AIPlayer.__subclasses__():
-  availablePlayers[playerSubClass.get_name()] = playerSubClass
+for playerSubClass in Player.__subclasses__():
+    availablePlayers[playerSubClass.get_name()] = playerSubClass
 
 # Parse command-line args.
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('declaredPlayers', metavar='p', type=str, nargs=2,
-  help=', '.join(availablePlayers.keys()))
+    help=', '.join(availablePlayers.keys()))
 parser.add_argument('-n', '--n_rounds', default=1, metavar='n_rounds',
-  type=int, help='positive int')
+    type=int, help='positive int')
 parser.add_argument('-v', '--verbosity', default='verbose',
-  metavar='verbosity', type=str, help='silent, scores, verbose, or log')
+    metavar='verbosity', type=str, help='silent, scores, verbose, or log')
 
 args = parser.parse_args()
 

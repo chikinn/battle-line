@@ -7,13 +7,17 @@ in another module (hanabi_classes).
 
 from bl_classes import *
 
-def play_one_round(gameType, players, names, verbosity, lossScore, isPoliced):
+def play_one_round(players, names, verbosity):
     """Play a full round and return the winner (str)."""
-    r = Round(players, names, verbosity) # Instance of a single Battle Line round
-    r.generate_deck_and_deal_hands()
+    r = Round(players, names, verbosity) # Instance of one Battle Line round
+    r.generate_decks_and_deal_hands()
 
-    while not r.winner:
+    while r.winner == None:
         r.get_play(players[r.whoseTurn]) # Play one turn.
+        for flag in r.flags:
+            r.check_flag(flag)
+        r.check_winner()
+
         r.whoseTurn = 1 - r.whoseTurn
 
     return r.winner 
