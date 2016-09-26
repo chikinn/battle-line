@@ -51,7 +51,7 @@ class Round(object):
         """Instantiate a Round and its Hand sub-objects."""
         self.nPlayers = len(names)
         self.winner = None
-        self.h = (self.Hand(i, names[i]) for i in range(self.nPlayers))
+        self.h = [self.Hand(i, names[i]] for i in range(self.nPlayers))
 
         initialBest = self.detect_formation(
                 [v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-3:]]) # Red 7, 8, 9
@@ -331,7 +331,7 @@ class Round(object):
             if flagOutcomes.count(player) >= STANDARD_WIN:
                 return player
 
-        for i in range(len(flagOutcomes)):
+#        for i in range(len(flagOutcomes)):
 
 
 
