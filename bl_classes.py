@@ -353,6 +353,9 @@ class Round(object):
                 else:
                     streakHolder = flagOutcomes[i]
                     breakthroughStreak = 1
+            else:
+                breakthroughStreak = 0
+                streakHolder = None
 
         return None
 
