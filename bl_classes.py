@@ -58,7 +58,7 @@ class Round(object):
         self.best = initialBest # Best formation reachable at an empty flag
 
         self.flags = [{'played':[[], []], ### TODO: turn flags into objects.
-                       'best':(initialBest, initialBest),
+                       'best':[initialBest, initialBest],
                        'fog':False,
                        'mud':False,
                        'winner':None} for _ in range(N_FLAGS)]
@@ -128,9 +128,11 @@ class Round(object):
             if len(flag['played'][me]) < formationSize: # Legal play
                 flag['played'][me].append(card)
                 self.replace_card(card, hand, deckName)
+                self.cardsLeft['troop'].remove(card)
                 if card in self.best['cards']:
                     self.best = self.best_empty()
-                self.cardsLeft['troop'].remove(card)
+                for f in self.flags:
+                    self.update_flag(f, card)
 
         if self.verbosity == 'verbose':
             hand.show(self.zazz[1])
@@ -147,10 +149,10 @@ class Round(object):
             values.sort()
 
             spacing = [int(values[i+1]) - int(values[i]) for i in range(l-1)]
-            if sum(spacing) <= formationSize - 1:
-                straight = True
-            elif spacing.count(0) == l-1:
+            if spacing.count(0) == l-1:
                 triple = True
+            elif sum(spacing) <= formationSize - 1:
+                straight = True
 
             if suits.count(suits[0]) == l:
                 flush = True
@@ -196,7 +198,7 @@ class Round(object):
                     break
             else:
                 possibleStraight = list(straight)
-                for value in cardValues: # Skip cards that are already played.
+                for value in set(cardValues): # Skip already played cards.
                     possibleStraight.remove(value)
                 out.append(list(map(str, possibleStraight)))
 
@@ -209,7 +211,7 @@ class Round(object):
     def best_case(self, cards, formationSize=3): ### TODO: tactics
         """Return the best possible continuation of a formation."""
         if len(cards) == formationSize:
-            return detect_formation(cards)
+            return self.detect_formation(cards)
 
         if cards == []:
             if formationSize == 3:
@@ -217,13 +219,15 @@ class Round(object):
             else:
                 pass ### TODO: Mud
 
-        firstSuit, firstValue = cards[0]
+        firstValue, firstSuit = cards[0]
         straight, triple, flush = self.check_formation_components(cards)
 
         if straight:
             possibleStraights = self.possible_straights(cards, formationSize)
 
         if straight and flush:
+            print(self.cardsLeft['troop'])
+            print(cards)
             for s in possibleStraights:
                 for value in s:
                     card = value + firstSuit
@@ -274,12 +278,14 @@ class Round(object):
         cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
         for fType in POKER_HIERARCHY:
             if fType == 'sum':
-                return best_case(self, [cardsLeft[0]])
+                return self.best_case([cardsLeft[0]])
             
             if fType == 'flush':
                 bestSoFar = {'strength':0}
                 for card in cardsLeft:
+                    self.cardsLeft.remove(card) # Card can't be played twice.
                     bestCase = self.best_case([card])
+                    self.cardsLeft.append(card)
                     if bestCase['type'] == fType:
                         if bestCase['strength'] > bestSoFar['strength']:
                             bestSoFar = bestCase
@@ -307,7 +313,8 @@ class Round(object):
     def update_flag(self, flag, justPlayed):
         """Find the new best continuation at the flag, if necessary."""
         for player in (0, 1):
-            if justPlayed in flag['best'][player]:
+            if (justPlayed in flag['best'][player]['cards']) !=\
+               (justPlayed in flag['played'][player]):
                 flag['best'][player] = self.best_case(flag['played'][player])
 
     def check_flag(self, flag):
@@ -358,6 +365,13 @@ class Round(object):
                 streakHolder = None
 
         return None
+
+    def show_flags(self):
+        print(self.cardsLeft['troop'])
+        for flag in self.flags:
+            print(flag['played'])
+            print(flag['best'][0]['cards'], flag['best'][1]['cards'])
+            print(flag['winner'])
 
     def get_scout_discard(self):
         pass

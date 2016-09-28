@@ -25,12 +25,15 @@ class RandomPlayer(Player):
         while card in TACTICS:
             card = random.choice(cards)
 
-        playableFlags = [f for f in r.flags if f['winner'] == None and \
-                                               len(f['played'][me]) < 3]
+        playableFlags = []
+        for i, flag in enumerate(r.flags):
+            if flag['winner'] == None and len(flag['played'][me]) < 3:
+                playableFlags.append(i)
+
         if len(playableFlags) == 0:
             return None, None, None
 
-        target = r.flags.index(random.choice(playableFlags))
+        target = random.choice(playableFlags)
 
         return card, target, 'troop'
 

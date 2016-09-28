@@ -20,8 +20,6 @@ def play_one_round(players, names, verbosity):
 
         r.whoseTurn = 1 - r.whoseTurn
 
-    for flag in r.flags:
-        print(flag['played'])
-        print(flag['winner'])
+        r.show_flags()
 
     return r.winner 
