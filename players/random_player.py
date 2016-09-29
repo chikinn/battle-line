@@ -1,7 +1,7 @@
-"""A despicable Hanabi player.
+"""The simplest possible player.
 
-Cheating Idiot never hints.  He peeks at his cards.  When he has a play, he
-picks one randomly.  When he doesn't, he discards randomly.
+Random Player plays a random troop card at a random flag and draws troops if
+available.
 """
 
 from bl_classes import *
