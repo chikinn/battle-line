@@ -85,8 +85,6 @@ class Round(object):
         for hand in self.h:
             for i in range(HAND_SIZE):
                 hand.add(self.draw('troop'))
-            if self.verbosity == 'verbose':
-                hand.show()
 
     def draw(self, deckName):
         """Remove and return the top card of the deck."""
@@ -105,10 +103,9 @@ class Round(object):
             return False # Deck is empty.
 
     def get_play(self, p):
-        """Retrieve and execute AI p's play for whoever's turn it is."""
+        """Execute AI p's play for current turn.  Return the play."""
         card, target, deckName = p.play(self)
         if card == None:
-            print('pass')
             return
 
         me = self.whoseTurn
@@ -127,14 +124,8 @@ class Round(object):
                 flag['played'][me].append(card)
                 self.replace_card(card, hand, deckName)
                 self.cardsLeft['troop'].remove(card)
-                if card in self.best['cards']:
-                    self.best = self.best_empty()
-                for f in self.flags:
-                    self.update_flag(f, card)
 
-        if self.verbosity == 'verbose':
-            hand.show()
-            print('{} plays {}'.format(hand.name, card))
+        return card, target, deckName
 
     def check_formation_components(self, cards, formationSize=3):
         straight, triple, flush = False, False, False
@@ -222,8 +213,6 @@ class Round(object):
             possibleStraights = self.possible_straights(cards, formationSize)
 
         if straight and flush:
-            print(self.cardsLeft['troop'])
-            print(cards)
             for s in possibleStraights:
                 for value in s:
                     card = value + firstSuit
@@ -313,7 +302,7 @@ class Round(object):
                (justPlayed in flag['played'][player]):
                 flag['best'][player] = self.best_case(flag['played'][player])
 
-    def check_flag(self, flag):
+    def try_to_resolve_flag(self, flag):
         """Determine whether a flag is won, either normally or by proof."""
         if flag['winner'] == None:
             formationSize = FORMATION_SIZE
@@ -362,11 +351,41 @@ class Round(object):
 
         return None
 
-    def show_flags(self):
-        for flag in self.flags:
-            print(flag['played'])
-#            print(flag['best'][0]['cards'], flag['best'][1]['cards'])
-            print(flag['winner'])
+    def show_flags(self): ### TODO: account for Mud.
+        padLength = 18
+        lines = [' ' * padLength] * 11
+
+        lines[3] = '  ' + self.h[0].name + ' ' * (18 - 2 - len(self.h[0].name))
+        lines[7] = '  ' + self.h[1].name + ' ' * (18 - 2 - len(self.h[1].name))
+
+        for i, flag in enumerate(self.flags):
+            center = '{}*    '.format(i)
+            p0, p1 = '      ', '      '
+            if flag['winner'] == 0:
+                center = '{}     '.format(i)
+                p0     = ' *    '
+            elif flag['winner'] == 1:
+                center = '{}     '.format(i)
+                p1     = ' *    '
+            lines[0]  += p0
+            lines[5]  += center
+            lines[10] += p1
+
+            for p in (0, 1):
+                for j in range(3):
+                    if p == 0:
+                        iLine = 3 - j
+                    else:
+                        iLine = 7 + j
+
+                    if j < len(flag['played'][p]):
+                        lines[iLine] += flag['played'][p][j] + ' ' * 4
+                    else:
+                        lines[iLine] += ' ' * 6
+
+        for line in lines:
+            print(line)
+        print()
 
     def get_scout_discard(self):
         pass
@@ -394,6 +413,7 @@ class Round(object):
         def show(self):
             """Print cards (verbose output only)."""
             print(self.name + ': ' + ' '.join(self.cards))
+            return len(self.name + ': ')
 
         def add(self, newCard):
             """Add a card to the hand."""
