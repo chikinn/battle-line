@@ -1,16 +1,5 @@
 #!/usr/bin/env python
-"""Wrapper for playing more than one round of Battle Line.
-
-Command-line arguments (see usage):
-  playeri: Name of the AI that will control each player
-  game_type: Whether to include the rainbow cards at all, and if so, whether
-    they're just another regular suit (effectively purple)
-  n_rounds: Number of rounds to play
-  verbosity: How much output to show ('silent', only final average scores;
-    'scores', result of each round; 'verbose', play by play; 'log',
-    detailed log file for the gamestate at each play)
-  loss_score: Whether to award points after a game is lost
-"""
+"""Wrapper for playing more than one round of Battle Line."""
 
 import sys, argparse, logging, random
 from play_bl import play_one_round
