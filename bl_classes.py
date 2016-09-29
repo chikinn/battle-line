@@ -66,7 +66,6 @@ class Round(object):
         self.whoseTurn = 0
 
         self.verbosity = verbosity
-        self.zazz = ['[HANDS]', '[PLAYS]']
 
     def generate_decks_and_deal_hands(self):
         """Construct decks, shuffle, and deal."""
@@ -87,8 +86,7 @@ class Round(object):
             for i in range(HAND_SIZE):
                 hand.add(self.draw('troop'))
             if self.verbosity == 'verbose':
-                hand.show(self.zazz[0])
-                self.zazz[0] = ' ' * len(self.zazz[0])
+                hand.show()
 
     def draw(self, deckName):
         """Remove and return the top card of the deck."""
@@ -135,10 +133,8 @@ class Round(object):
                     self.update_flag(f, card)
 
         if self.verbosity == 'verbose':
-            hand.show(self.zazz[1])
-            print(self.zazz[1] + '{} plays {}'\
-                    .format(hand.name, card))
-            self.zazz[1] = ' ' * len(self.zazz[1])
+            hand.show()
+            print('{} plays {}'.format(hand.name, card))
 
     def check_formation_components(self, cards, formationSize=3):
         straight, triple, flush = False, False, False
@@ -367,10 +363,9 @@ class Round(object):
         return None
 
     def show_flags(self):
-        print(self.cardsLeft['troop'])
         for flag in self.flags:
             print(flag['played'])
-            print(flag['best'][0]['cards'], flag['best'][1]['cards'])
+#            print(flag['best'][0]['cards'], flag['best'][1]['cards'])
             print(flag['winner'])
 
     def get_scout_discard(self):
@@ -396,9 +391,9 @@ class Round(object):
             self.seat = seat
             self.name = name
 
-        def show(self, zazz):
+        def show(self):
             """Print cards (verbose output only)."""
-            print(zazz + ' ' + self.name + ': ' + ' '.join(self.cards))
+            print(self.name + ': ' + ' '.join(self.cards))
 
         def add(self, newCard):
             """Add a card to the hand."""
