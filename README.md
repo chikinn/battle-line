@@ -26,4 +26,4 @@ Intended to run in Python 3 (change the shebang in bl_wrapper.py)
     
     Winner: Random2
 
-TODO: add tactics, non-random players
+TODO: debug tactics, update proofs for tactics, add non-random players

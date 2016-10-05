@@ -105,27 +105,82 @@ class Round(object):
     def get_play(self, p):
         """Execute AI p's play for current turn.  Return the play."""
         card, target, deckName = p.play(self)
-        if card == None:
+        if card == None: # Player passed; do nothing.
             return
 
         me = self.whoseTurn
         hand = self.h[me]
 
         if card in TACTICS:
-            pass
+            assert 'played at most one more than opponent' # Legal play
+            self.cardsLeft['tactics'].remove(card)
+
+            if card == 'Sc':
+                assert (type(target), len(target)) == (tuple, 3) # Deck names
+                for deckName in target:
+                    hand.add(self.draw(deckName))
+
+                discards = self.get_scout_discards(p)
+                for discard in discards:
+                    if discard in TACTICS:
+                        deck = 'tactics'
+                    else:
+                        deck = 'troop'
+                    self.decks['deck'].append(discard)
+                    hand.drop(discard)
+                return # Skip regular discard step.
+
+            elif card in ('De', 'Tr', 'Re'):
+                if card == 'De':
+                    targetCard, targetDestination = target, None
+                    startSide = 1 - me
+                else: # Tr, Re
+                    assert (type(target), len(target)) == (tuple, 2)
+                    targetCard, targetDestination = target
+
+                    if card == 'Tr':
+                        startSide, endSide = 1 - me, me
+                    else: # Re
+                        startSide, endSide = me, me
+
+                for f in self.flags:
+                    if targetCard in f['played'][startSide]:
+                        f['played'][1 - me].remove(targetCard)
+                        break
+                else:
+                    pass # Error -- target not found
+
+                if targetDestination != None:
+                    f = self.flags[targetDestination]
+                    f['played'].append(targetCard)
+
+            elif card in ('Fo', 'Mu'):
+                self.flags[target][TACTICS[card].lower()] = True
+
+            else: # Al, Da, Co, or Sh
+                if card in ('Al', 'Da'):
+                    assert 'not played other already' # Legal play
+                self.play_troop(card, target) # Play like a troop.
 
         else: # Troop
-            flag = self.flags[target]
-            formationSize = FORMATION_SIZE
-            if flag['mud']:
-                formationSize += 1
+            self.cardsLeft['troop'].remove(card)
+            self.play_troop(card, target)
 
-            if len(flag['played'][me]) < formationSize: # Legal play
-                flag['played'][me].append(card)
-                self.replace_card(card, hand, deckName)
-                self.cardsLeft['troop'].remove(card)
-
+        self.replace_card(card, hand, deckName)
         return card, target, deckName
+
+    def play_troop(self, card, target):
+        me = self.whoseTurn
+        hand = self.h[me]
+        flag = self.flags[target]
+
+        formationSize = FORMATION_SIZE
+        if flag['mud']:
+            formationSize += 1
+
+        assert len(flag['played'][me]) < formationSize # Legal play
+
+        flag['played'][me].append(card)
 
     def check_formation_components(self, cards, formationSize=3):
         straight, triple, flush = False, False, False
@@ -387,7 +442,7 @@ class Round(object):
             print(line)
         print()
 
-    def get_scout_discard(self):
+    def get_scout_discards(self):
         pass
 
 
