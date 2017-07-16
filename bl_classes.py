@@ -101,6 +101,7 @@ class Round():
         if card in TACTICS:
             assert 'played at most one more than opponent' # Legal play
             self.cardsLeft['tactics'].remove(card)
+            self.play_tactics(card, target)
 
         else: # Troop
             self.cardsLeft['troop'].remove(card)
@@ -140,7 +141,8 @@ class Round():
 
         elif card in ('De', 'Tr', 'Re'):
             if card == 'De':
-                targetCard, targetDestination = target, None
+                assert len(target) == 1
+                targetCard, targetDestination = target[0], None
                 startSide = 1 - p
             else: # Tr, Re
                 assert (type(target), len(target)) == (tuple, 2)
@@ -153,14 +155,14 @@ class Round():
 
             for f in self.flags:
                 if targetCard in f.played[startSide]:
-                    f.played[1 - p].remove(targetCard)
+                    f.played[startSide].remove(targetCard)
                     break
             else:
                 pass # Error -- target not found
 
             if targetDestination != None:
                 f = self.flags[targetDestination]
-                f.played.append(targetCard)
+                f.played[endSide].append(targetCard)
 
         elif card == 'Fo':
             self.flags[target].fog = True
@@ -236,7 +238,7 @@ class Round():
         # Sum
         cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
         nEmptySlots = formationSize - len(cards)
-        return detect_formation(cards + cardsLeft[:nEmptySlots])
+        return detect_formation(cards + [cardsLeft[0]])
 
     def best_empty(self): ### TODO: Loop through best_case instead?
         """Find best formation (self.best) still playable at an empty flag."""
@@ -329,7 +331,7 @@ class Round():
                         lines[iLine] += ' ' * 6
 
         [print(line) for line in lines]
-        print()
+        print('-'*79)
 
     def get_scout_discards(self):
         pass

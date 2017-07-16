@@ -32,6 +32,4 @@ class RandomPlayer(Player):
         if len(playableFlags) == 0:
             return None, None, None
 
-        target = random.choice(playableFlags)
-
-        return card, target, 'troop'
+        return card, random.choice(playableFlags), 'troop'

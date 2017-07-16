@@ -4,7 +4,7 @@
 import sys, argparse, logging, random
 from play_bl import play_one_round
 from bl_classes import Player
-from players import random_player
+from players import random_player, greedy_player ### TODO: streamline
 
 availablePlayers = {}
 for playerSubClass in Player.__subclasses__():
