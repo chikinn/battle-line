@@ -7,6 +7,7 @@ the nested Hand class, which stores player-specific info.
 
 import random, sys, copy
 
+N_PLAYERS        = 2
 N_FLAGS          = 9
 STANDARD_WIN     = 5
 BREAKTHROUGH_WIN = 3
@@ -22,7 +23,7 @@ HAND_SIZE        = 7
 POKER_HIERARCHY  = ('straight flush', 'triple', 'flush', 'straight', 'sum')
 EPSILON          = 0.1 # Arbitrary number on (0,1) to break formation ties
 
-class Player(object):
+class Player():
     """Class that should be inherited from when making"""
     def __init__(self, me, verbosity):
         super(Player, self).__init__()
@@ -37,42 +38,28 @@ class Player(object):
         raise Exception("Must override this method")
         pass
 
-class Round(object):
+class Round():
     """Store round info and interact with AI players.
 
     The only method that interacts with AIs is 'get_play'.
-
-    gameType (str): How to treat rainbows ('rainbow', 'purple', 'vanlla').
-    suits (str): Which suits are included for this game type.
-    nPlayers (int)
     """
 
     def __init__(self, players, names, verbosity):
         """Instantiate a Round and its Hand sub-objects."""
-        self.nPlayers = len(names)
-        self.winner = None
-        self.h = [self.Hand(i, names[i]) for i in range(self.nPlayers)]
+        self.h = [self.Hand(i, names[i]) for i in range(N_PLAYERS)]
 
         initialBest = self.detect_formation(
-                [v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-3:]]) # Red 7, 8, 9
+                 [v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-3:]]) # Red 7, 8, 9
         self.best = initialBest # Best formation reachable at an empty flag
+        self.flags = [self.Flag(initialBest) for i in range(N_FLAGS)]
 
-        self.flags = [{'played':[[], []], ### TODO: turn flags into objects.
-                       'best':[initialBest, initialBest],
-                       'fog':False,
-                       'mud':False,
-                       'winner':None} for _ in range(N_FLAGS)]
-
+        self.winner = None
         self.whoseTurn = 0
-
         self.verbosity = verbosity
 
     def generate_decks_and_deal_hands(self):
         """Construct decks, shuffle, and deal."""
-        troopDeck = []
-        for suit in TROOP_SUITS:
-            for number in TROOP_CONTENTS:
-                troopDeck.append(number + suit)
+        troopDeck = [n + s for n in TROOP_CONTENTS for s in TROOP_SUITS]
         tacticsDeck = [key for key in TACTICS]
 
         # Start tracking unplayed cards.
@@ -144,18 +131,21 @@ class Round(object):
                         startSide, endSide = me, me
 
                 for f in self.flags:
-                    if targetCard in f['played'][startSide]:
-                        f['played'][1 - me].remove(targetCard)
+                    if targetCard in f.played[startSide]:
+                        f.played[1 - me].remove(targetCard)
                         break
                 else:
                     pass # Error -- target not found
 
                 if targetDestination != None:
                     f = self.flags[targetDestination]
-                    f['played'].append(targetCard)
+                    f.played.append(targetCard)
 
-            elif card in ('Fo', 'Mu'):
-                self.flags[target][TACTICS[card].lower()] = True
+            elif card == 'Fo':
+                self.flags[target].fog = True
+
+            elif card == 'Mu':
+                self.flags[target].mud = True
 
             else: # Al, Da, Co, or Sh
                 if card in ('Al', 'Da'):
@@ -175,12 +165,12 @@ class Round(object):
         flag = self.flags[target]
 
         formationSize = FORMATION_SIZE
-        if flag['mud']:
+        if flag.mud:
             formationSize += 1
 
-        assert len(flag['played'][me]) < formationSize # Legal play
+        assert len(flag.played[me]) < formationSize # Legal play
 
-        flag['played'][me].append(card)
+        flag.played[me].append(card)
 
     def check_formation_components(self, cards, formationSize=3):
         straight, triple, flush = False, False, False
@@ -353,37 +343,37 @@ class Round(object):
     def update_flag(self, flag, justPlayed):
         """Find the new best continuation at the flag, if necessary."""
         for player in (0, 1):
-            if (justPlayed in flag['best'][player]['cards']) !=\
-               (justPlayed in flag['played'][player]):
-                flag['best'][player] = self.best_case(flag['played'][player])
+            if (justPlayed in flag.best[player]['cards']) !=\
+               (justPlayed in flag.played[player]):
+                flag.best[player] = self.best_case(flag.played[player])
 
     def try_to_resolve_flag(self, flag):
         """Determine whether a flag is won, either normally or by proof."""
-        if flag['winner'] == None:
+        if flag.winner == None:
             formationSize = FORMATION_SIZE
-            if flag['mud']:
+            if flag.mud:
                 formationSize += 1
 
-            formations = copy.copy(flag['played'])
+            formations = copy.copy(flag.played)
             finishedPlayers = []
             for player in (0, 1):
                 if len(formations[player]) == formationSize:
                     finishedPlayers.append(player)
             
             if len(finishedPlayers) == 2: # Both players ready 
-                flag['winner'] = self.compare_formations(list(map(self.detect_formation, formations)))
+                flag.winner = self.compare_formations(list(map(self.detect_formation, formations)))
             elif len(finishedPlayers) == 1: # One attacker seeks a proof.
                 for player in (0, 1):
                     if player not in finishedPlayers: # Defender
-                        formations[player] = copy.copy(flag['best'][player])
+                        formations[player] = copy.copy(flag.best[player])
                         # Tie goes to attacker since he finished first.
                         formations[player]['strength'] -= EPSILON
                         formations[1 - player] = self.detect_formation(formations[1 - player])
                         if self.compare_formations(formations) == 1 - player:
-                            flag['winner'] = 1 - player # Attacker wins.
+                            flag.winner = 1 - player # Attacker wins.
 
     def check_winner(self):
-        flagOutcomes = [f['winner'] for f in self.flags]
+        flagOutcomes = [f.winner for f in self.flags]
 
         for player in (0, 1):
             if flagOutcomes.count(player) >= STANDARD_WIN:
@@ -416,10 +406,10 @@ class Round(object):
         for i, flag in enumerate(self.flags):
             center = '{}*    '.format(i)
             p0, p1 = '      ', '      '
-            if flag['winner'] == 0:
+            if flag.winner == 0:
                 center = '{}     '.format(i)
                 p0     = ' *    '
-            elif flag['winner'] == 1:
+            elif flag.winner == 1:
                 center = '{}     '.format(i)
                 p1     = ' *    '
             lines[0]  += p0
@@ -433,8 +423,8 @@ class Round(object):
                     else:
                         iLine = 7 + j
 
-                    if j < len(flag['played'][p]):
-                        lines[iLine] += flag['played'][p][j] + ' ' * 4
+                    if j < len(flag.played[p]):
+                        lines[iLine] += flag.played[p][j] + ' ' * 4
                     else:
                         lines[iLine] += ' ' * 6
 
@@ -446,7 +436,17 @@ class Round(object):
         pass
 
 
-    class Hand(object):
+    class Flag(): ### TODO: convert flags to objects
+        def __init__(self, initialBest):
+            """Instantiate a Flag."""
+            self.played = [[], []]
+            self.best = [initialBest, initialBest]
+            self.fog = False
+            self.mud = False
+            self.winner = None
+
+
+    class Hand():
         """Manage one player's hand of cards.
 
         cards (list of dict): One dict per card.  Keys:

@@ -27,7 +27,7 @@ class RandomPlayer(Player):
 
         playableFlags = []
         for i, flag in enumerate(r.flags):
-            if flag['winner'] == None and len(flag['played'][me]) < 3:
+            if flag.winner == None and len(flag.played[me]) < 3:
                 playableFlags.append(i)
 
         if len(playableFlags) == 0:
