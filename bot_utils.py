@@ -45,7 +45,7 @@ def check_formation_components(cards, formationSize=FORMATION_SIZE):
 
             return straight, triple, flush
 
-        else: # All formations still conceivable with 0 or 1 cards played.
+        else: # With 0 or 1 cards played, all formations are still conceivable.
             return True, True, True
 
 def detect_formation(cards): # Assume wilds pre-specified

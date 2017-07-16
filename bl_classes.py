@@ -1,8 +1,8 @@
 """Low-level classes for tracking state of a Battle Line round.
 
 Intended to be imported by a higher-level game manager (play_bl).  The meat of
-this file is the Round class, which stores all of the game info, along with
-the nested Hand class, which stores player-specific info.
+this file is the Round class, which stores all of the game info, along with the
+nested Hand and Flag classes.
 """
 
 N_PLAYERS        = 2
@@ -206,9 +206,8 @@ class Round():
                         return detect_formation(cards +\
                                  [value + firstSuit for value in s])
 
-        formation = copy.copy(cards)
-
         if triple:                               ###
+            formation = copy.copy(cards)
             for card in self.cardsLeft['troop']: ### TODO: loop through suits
                 if card[0] == firstValue:        ### instead, more efficiently.
                     formation += [card]          ###
@@ -216,6 +215,7 @@ class Round():
                         return detect_formation(formation)
 
         if flush: ### TODO: too similar to triple block above; consolidate?
+            formation = copy.copy(cards)
             for value in TROOP_CONTENTS[::-1]:
                 if value + firstSuit in self.cardsLeft['troop']:
                     formation.append(value + firstSuit)
@@ -238,7 +238,7 @@ class Round():
         # Sum
         cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
         nEmptySlots = formationSize - len(cards)
-        return detect_formation(cards + [cardsLeft[0]])
+        return detect_formation(cards + cardsLeft[:nEmptySlots])
 
     def best_empty(self): ### TODO: Loop through best_case instead?
         """Find best formation (self.best) still playable at an empty flag."""
@@ -251,10 +251,10 @@ class Round():
             
             if fType == 'flush':
                 bestSoFar = {'strength':0}
-                for card in cardsLeft:
-                    self.cardsLeft.remove(card) # Card can't be played twice.
-                    bestCase = self.best_case([card])
-                    self.cardsLeft.append(card)
+                for card in cardsLeft:                   #
+                    self.cardsLeft['troop'].remove(card) # Card can't be
+                    bestCase = self.best_case([card])    # played twice.
+                    self.cardsLeft['troop'].append(card) #
                     if bestCase['type'] == fType:
                         if bestCase['strength'] > bestSoFar['strength']:
                             bestSoFar = bestCase
@@ -338,6 +338,12 @@ class Round():
 
 
     class Flag():
+        """Lorem ipsum
+
+        Sic transit
+        """
+
+
         def __init__(self, initialBest):
             """Instantiate a Flag."""
             self.played = [[], []]
