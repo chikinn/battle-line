@@ -29,7 +29,7 @@ def play_one_round(players, names, verbosity):
 
             for flag in r.flags:
                 r.update_flag(flag, card)   # Keep track of best continuation.
-                r.try_to_resolve_flag(flag)
+                flag.try_to_resolve(r.whoseTurn)
 
             r.winner = r.check_winner()
 

@@ -1,7 +1,6 @@
 """The simplest possible player.
 
-Random Player plays a random troop card at a random flag and draws troops if
-available.
+Random Player plays only troops, at random, and draws troops if available.
 """
 
 from bl_classes import *
@@ -14,7 +13,7 @@ class RandomPlayer(Player):
         return 'random'
 
     def __init__(self, *args):
-        """Can be overridden to perform initialization, but must call super"""
+        """Can be overridden to perform initialization, but must call super."""
         super(RandomPlayer, self).__init__(*args)
 
     def play(self, r):
@@ -36,7 +35,3 @@ class RandomPlayer(Player):
         target = random.choice(playableFlags)
 
         return card, target, 'troop'
-
-    def end_game_logging(self):
-        """Can be overridden to perform logging at the end of the game"""
-        pass
