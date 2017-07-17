@@ -2,7 +2,8 @@
 #### Robert B. Kaspar, rbkaspar@gmail.com
 
 Computer players for a poker-inspired two-player card game
-Intended to run in Python 3 (change the shebang in bl_wrapper.py)
+
+Intended to run in Python 3 (change the shebang in `bl_wrapper.py`)
 
 ## Example usage
     $ ./bl_wrapper.py random random
@@ -26,4 +27,4 @@ Intended to run in Python 3 (change the shebang in bl_wrapper.py)
     
     Winner: Random2
 
-TODO: debug tactics, update proofs for tactics, add non-random players
+TODO: add remaining tactics (Al/Da/Sh/Co/Sc), update proofs for tactics, make better players

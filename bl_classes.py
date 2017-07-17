@@ -21,8 +21,8 @@ HAND_SIZE        = 7
 POKER_HIERARCHY  = ('straight flush', 'triple', 'flush', 'straight', 'sum')
 EPSILON          = 0.1 # Arbitrary number on (0,1) to break formation ties
 
-from bot_utils import *
 import random, sys, copy
+from bot_utils import *
 
 
 class Player():
@@ -50,10 +50,14 @@ class Round():
         initialBest = detect_formation(
                  [v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-3:]]) # Red 7, 8, 9
         self.best = initialBest # Best formation reachable at an empty flag
+        initialBestMud = detect_formation(
+                 [v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-4:]]) # Red 6-10
+        self.bestMud = initialBestMud
         self.flags = [self.Flag(initialBest) for i in range(N_FLAGS)]
 
         self.h = [self.Hand(i, names[i]) for i in range(N_PLAYERS)]
 
+        self.playedLeader = None # Track who has played Alexander or Darius.
         self.tacticsAdvantage = None
         self.winner = None
         self.whoseTurn = 0
@@ -74,15 +78,20 @@ class Round():
 
     def draw(self, deckName):
         """Attempt to remove and return the top card of the deck."""
-        if self.decks[deckName] == []: # Empty; draw from other deck.
+        if self.decks[deckName] != []: # Empty; draw from other deck.
+            return self.decks[deckName].pop()
+        else: # Empty; draw from other deck.
             otherDeckName = [key for key in self.decks if key != deckName][0]
-            return self.decks[otherDeckName].pop()
-        return self.decks[deckName].pop()
+            if self.decks[otherDeckName] != []: # Rarely, both decks are empty!
+                return self.decks[otherDeckName].pop()
 
     def replace_card(self, card, hand, deckName):
         """Discard from hand, then draw."""
         hand.drop(card)
-        hand.add(self.draw(deckName))
+        
+        draw = self.draw(deckName)
+        if draw != None:
+            hand.add(draw)
 
     def update_tactics_advantage(self):
         p = self.whoseTurn
@@ -165,10 +174,10 @@ class Round():
                 f.played[endSide].append(targetCard)
 
         elif card == 'Fo':
-            self.flags[target].fog = True
+            self.fog_update(self.flags[target])
 
         elif card == 'Mu':
-            self.flags[target].mud = True
+            self.mud_update(self.flags[target])
 
         else: # Al, Da, Co, or Sh
             if card in ('Al', 'Da'):
@@ -179,19 +188,25 @@ class Round():
         """Return whether a card might still be available to draw and play."""
         return card in self.cardsLeft['troop'] + self.cardsLeft['tactics']
     
-    def best_case(self, cards, formationSize=FORMATION_SIZE): ### TODO: tactics
+    def best_case(self, cards, special=[]):
         """Return the best possible continuation of a formation."""
+        formationSize = FORMATION_SIZE
+        if "mud" in special:
+            formationSize += 1
+        if "fog" in special:
+            return self.best_fog(cards, formationSize)
+
         if len(cards) == formationSize:
             return detect_formation(cards)
 
         if cards == []:
-            if formationSize == 3:
-                return self.best
+            if "mud" in special:
+                return self.bestMud
             else:
-                pass ### TODO: Mud
+                return self.best
 
         firstValue, firstSuit = cards[0]
-        straight, triple, flush = check_formation_components(cards)
+        straight, triple, flush = check_formation_components(cards, formationSize)
 
         if straight:
             possibleStraights = possible_straights(cards, formationSize)
@@ -206,8 +221,8 @@ class Round():
                         return detect_formation(cards +\
                                  [value + firstSuit for value in s])
 
-        if triple:                               ###
-            formation = copy.copy(cards)
+        if triple:                               
+            formation = copy.copy(cards)         ###
             for card in self.cardsLeft['troop']: ### TODO: loop through suits
                 if card[0] == firstValue:        ### instead, more efficiently.
                     formation += [card]          ###
@@ -235,26 +250,34 @@ class Round():
                 else: # All values are available.
                     return detect_formation(formation)
 
-        # Sum
+        return self.best_fog(cards, formationSize) # Sum
+
+    def best_fog(self, cards, formationSize):
         cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
         nEmptySlots = formationSize - len(cards)
         return detect_formation(cards + cardsLeft[:nEmptySlots])
 
-    def best_empty(self): ### TODO: Loop through best_case instead?
+    def best_empty(self, mud=False): ### TODO: Loop through best_case instead?
         """Find best formation (self.best) still playable at an empty flag."""
+        special = []
         oldBest = self.best # Exclude better formations from search.
+        formationSize = FORMATION_SIZE
+        if mud:
+            special += ['mud']
+            oldBest = self.bestMud
+            formationSize += 1
 
         cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
         for fType in POKER_HIERARCHY[POKER_HIERARCHY.index(oldBest['type']):]:
             if fType == 'sum':
-                return self.best_case([cardsLeft[:FORMATION_SIZE]])
+                return self.best_case(cardsLeft[:formationSize], special)
             
             if fType == 'flush':
                 bestSoFar = {'strength':0}
-                for card in cardsLeft:                   #
-                    self.cardsLeft['troop'].remove(card) # Card can't be
-                    bestCase = self.best_case([card])    # played twice.
-                    self.cardsLeft['troop'].append(card) #
+                for card in cardsLeft:                         #     
+                    self.cardsLeft['troop'].remove(card)       # Card can't be
+                    bestCase = self.best_case([card], special) # played twice.
+                    self.cardsLeft['troop'].append(card)       #
                     if bestCase['type'] == fType:
                         if bestCase['strength'] > bestSoFar['strength']:
                             bestSoFar = bestCase
@@ -263,16 +286,24 @@ class Round():
 
             ### TODO: Don't double-check same-valued triples, straights.
             for card in cardsLeft:
-                bestCase = self.best_case([card])
+                bestCase = self.best_case([card], special)
                 if bestCase['type'] == fType:
                     return bestCase
 
     def update_flag(self, flag, justPlayed):
         """Find the new best continuation at the flag, if necessary."""
-        for player in range(N_PLAYERS):
-            if (justPlayed in flag.best[player]['cards']) !=\
-               (justPlayed in flag.played[player]):
-                flag.best[player] = self.best_case(flag.played[player])
+        special = []
+        formationSize = FORMATION_SIZE
+        if flag.mud:
+            special = ['mud']
+            formationSize += 1
+        if flag.fog:
+            special += ['fog']
+
+        for p in range(N_PLAYERS):
+            if (justPlayed in flag.best[p]['cards']) !=\
+               (justPlayed in flag.played[p]):
+                flag.best[p] = self.best_case(flag.played[p], special)
 
     def check_winner(self):
         flagOutcomes = [f.winner for f in self.flags]
@@ -298,40 +329,70 @@ class Round():
 
         return None
 
-    def show_flags(self): ### TODO: account for Mud.
-        padLength = 18
-        lines = [' ' * padLength] * 11
+    def show_flags(self):
+        formationSize = FORMATION_SIZE + 1 # Allow for Mud.
 
-        lines[3] = '  ' + self.h[0].name + ' ' * (18 - 2 - len(self.h[0].name))
-        lines[7] = '  ' + self.h[1].name + ' ' * (18 - 2 - len(self.h[1].name))
+        padLength = 18
+        lines = [' ' * padLength] * 13
+
+        lines[4] = '  ' + self.h[0].name + ' ' * (18 - 2 - len(self.h[0].name))
+        lines[8] = '  ' + self.h[1].name + ' ' * (18 - 2 - len(self.h[1].name))
 
         for i, flag in enumerate(self.flags):
-            center = '{}*    '.format(i)
-            p0, p1 = '      ', '      '
+            center = '{}*     '.format(i)
+            p0, p1 = '       ', '       '
             if flag.winner == 0:
-                center = '{}     '.format(i)
-                p0     = ' *    '
+                center = '{}      '.format(i)
+                p0     = ' *     '
             elif flag.winner == 1:
-                center = '{}     '.format(i)
-                p1     = ' *    '
+                center = '{}      '.format(i)
+                p1     = ' *     '
             lines[0]  += p0
-            lines[5]  += center
-            lines[10] += p1
+            if flag.mud:
+                center = center[:2] + 'Mu' + '   '
+            if flag.fog:
+                lines[6] = lines[6][:-2] + 'Fo'
+            lines[6]  += center
+            lines[12] += p1
 
             for p in range(N_PLAYERS):
-                for j in range(3):
+                for j in range(formationSize):
                     if p == 0:
-                        iLine = 3 - j
+                        iLine = 4 - j
                     else:
-                        iLine = 7 + j
+                        iLine = 8 + j
 
                     if j < len(flag.played[p]):
-                        lines[iLine] += flag.played[p][j] + ' ' * 4
+                        lines[iLine] += flag.played[p][j] + ' ' * 5
                     else:
-                        lines[iLine] += ' ' * 6
+                        lines[iLine] += ' ' * 7
 
-        [print(line) for line in lines]
+        for f in self.flags:
+            if f.mud:
+                break
+        else: # Remove extra display lines if Mud not in play.
+            del lines[1]
+            del lines[11]
+
+        [print(line[:79]) for line in lines]
         print('-'*79)
+
+    def fog_update(self, flag):
+        flag.fog = True
+        formationSize = FORMATION_SIZE
+        if flag.mud:
+            formationSize += 1
+
+        for p in range(N_PLAYERS):
+            flag.best[p] = self.best_fog(flag.played[p], formationSize)
+
+    def mud_update(self, flag): ### TODO: update best after De/Re/Tr.
+        flag.mud = True
+        special = ['mud']
+        if flag.fog:
+            special += ['fog']
+        for p in range(N_PLAYERS):
+            flag.best[p] = self.best_case(flag.played[p], special)
 
     def get_scout_discards(self):
         pass
@@ -351,6 +412,15 @@ class Round():
             self.fog = False
             self.mud = False
             self.winner = None
+
+        def has_card(self, p):
+            return self.winner == None and self.played[p] != []
+
+        def has_slot(self, p):
+            nSlots = FORMATION_SIZE
+            if self.mud:
+                nSlots += 1
+            return self.winner == None and len(self.played[p]) < nSlots
 
         def try_to_resolve(self, whoseTurn):
             """Determine whether a flag is won, either normally or by proof."""
@@ -372,7 +442,7 @@ class Round():
                             formations[p] = copy.copy(self.best[p])
                             # Tie goes to attacker since he finished first.
                             formations[p]['strength'] -= EPSILON
-                            formations[1 - p] = detect_formation(formations[1 - p])
+                            formations[1 - p] = self.best[1 - p]
                             if compare_formations(formations, whoseTurn) == 1 - p:
                                 self.winner = 1 - p # Attacker wins.
 

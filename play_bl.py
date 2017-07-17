@@ -27,8 +27,11 @@ def play_one_round(players, names, verbosity):
             if card in r.best['cards']:
                 r.best = r.best_empty()
 
+            if card in r.bestMud['cards']:
+                r.bestMud = r.best_empty(True)
+
             for flag in r.flags:
-                r.update_flag(flag, card)   # Keep track of best continuation.
+                r.update_flag(flag, card) # Keep track of best continuation.
                 flag.try_to_resolve(r.whoseTurn)
 
             r.winner = r.check_winner()

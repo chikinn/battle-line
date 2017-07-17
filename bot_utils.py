@@ -52,7 +52,7 @@ def detect_formation(cards): # Assume wilds pre-specified
         l = len(cards)
         assert 3 <= l <= 4 # Allow for Mud.
 
-        straight, triple, flush = check_formation_components(cards)
+        straight, triple, flush = check_formation_components(cards, len(cards))
 
         if straight and flush:
             fType = 'straight flush'
@@ -79,3 +79,36 @@ def compare_formations(formations, whoseTurn):
                 return strengths.index(max(strengths))
             else: # Identical formations, but current player finished 2nd
                 return 1 - whoseTurn
+
+def is_playable(r, tacticsCard):
+    if tacticsCard in ('Fo', 'Mu'):
+        return True
+
+    if tacticsCard == 'Sc':
+        return len(r.decks['troop']) + len(r.decks['tactics']) >= 3
+
+    if tacticsCard in ('Al', 'Da'):
+        if r.playedLeader == r.whoseTurn:
+            return False
+
+    me = r.whoseTurn
+    myEmpty = [i for i, f in enumerate(r.flags)
+               if f.winner == None and len(f.played[me]) < 3]
+
+    if tacticsCard in ('Al', 'Da', 'Sh', 'Co'):
+        return myEmpty != []
+
+    yourFull = [i for i, f in enumerate(r.flags)
+                if f.winner == None and len(f.played[1 - me]) > 0]
+    
+    if tacticsCard == 'De':
+        return yourFull != []
+
+    if tacticsCard == 'Tr':
+        return yourFull != [] and myEmpty != []
+
+    myFull = [i for i, f in enumerate(r.flags)
+              if f.winner == None and len(f.played[me]) > 0]
+
+    if tacticsCard == 'Re':
+        return myFull != []
