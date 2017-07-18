@@ -21,7 +21,7 @@ HAND_SIZE        = 7
 POKER_HIERARCHY  = ('straight flush', 'triple', 'flush', 'straight', 'sum')
 EPSILON          = 0.1 # Arbitrary number on (0,1) to break formation ties
 
-import random, sys, copy
+import random, sys, copy, itertools
 from bot_utils import *
 
 
@@ -193,14 +193,34 @@ class Round():
 
         else: # Al, Da, Co, or Sh
             if card in ('Al', 'Da'):
-                assert 'not played other already' # Legal play
+                assert not self.playedLeader == self.whoseTurn # Legal play
+                self.playedLeader = self.whoseTurn
             self.play_troop(card, target) # Play like a troop.
 
     def available(self, card):
         """Return whether a card might still be available to draw and play."""
         return card in self.cardsLeft['troop'] + self.cardsLeft['tactics']
-    
+
     def best_case(self, cards, special=[]):
+        cardOptions = [list(tup) for tup in
+            itertools.product(*[card_options(card) for card in cards])
+        ]
+        if len(cardOptions) == 1:
+            return self.best_case_no_wilds(cards, special)
+        else:
+            formations = list(
+                map(
+                    lambda cards: self.best_case_no_wilds(cards, special),
+                    cardOptions
+                )
+            )
+            bestFormation = formations[0]
+            for formation in formations[1:]:
+                if compare_formations([formation, bestFormation], 0) == 0:
+                    bestFormation = formation
+            return bestFormation
+
+    def best_case_no_wilds(self, cards, special=[]):
         """Return the best possible continuation of a formation."""
         formationSize = FORMATION_SIZE
         if "mud" in special:
@@ -233,7 +253,7 @@ class Round():
                         return detect_formation(cards +\
                                  [value + firstSuit for value in s])
 
-        if triple:                               
+        if triple:
             formation = copy.copy(cards)         ###
             for card in self.cardsLeft['troop']: ### TODO: loop through suits
                 if card[0] == firstValue:        ### instead, more efficiently.
