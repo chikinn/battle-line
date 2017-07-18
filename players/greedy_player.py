@@ -70,4 +70,4 @@ class GreedyPlayer(Player):
                 card = random.choice(cards)
             target = random.choice(mySlots)
 
-        return card, target, 'tactics'
+        return card, target, r.preferTactics()

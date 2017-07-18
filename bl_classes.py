@@ -85,6 +85,18 @@ class Round():
             if self.decks[otherDeckName] != []: # Rarely, both decks are empty!
                 return self.decks[otherDeckName].pop()
 
+    def preferTactics(self):
+        if len(self.decks['tactics']) > 0:
+            return 'tactics'
+        else:
+            return 'troop'
+
+    def preferTroops(self):
+        if len(self.decks['troop']) > 0:
+            return 'troop'
+        else:
+            return 'tactics'
+
     def replace_card(self, card, hand, deckName):
         """Discard from hand, then draw."""
         hand.drop(card)
