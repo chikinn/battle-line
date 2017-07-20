@@ -91,7 +91,7 @@ class Round():
         else:
             return 'troop'
 
-    def prefer_troops(self):
+    def prefer_troop(self):
         if len(self.decks['troop']) > 0:
             return 'troop'
         else:
@@ -415,7 +415,6 @@ class Round():
 
         Sic transit
         """
-
 
         def __init__(self, initialBest):
             """Instantiate a Flag."""
