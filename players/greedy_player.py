@@ -50,12 +50,10 @@ class GreedyPlayer(Player):
     
                 elif card == 'Tr':
                     c = random.choice(
-                        [card
-                            for flag in yourCards
-                                for card in r.flags[flag].played[1 - me]
-                                    if card not in TACTICS
-                        ]
-                    )
+                            [card
+                                for flag in yourCards
+                                    for card in r.flags[flag].played[1 - me]
+                                        if card not in TACTICS])
                     f2 = random.choice(mySlots)
                     target = c, f2
     

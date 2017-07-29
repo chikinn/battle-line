@@ -6,106 +6,106 @@ will use it, however, then it doesn't belong here."""
 from bl_classes import * # Need to import?  Do it in bl_classes.py.
 
 def possible_straights(cards, formationSize=FORMATION_SIZE):
-        """Return a seq of conceivable straight continuations."""
-        minVal, maxVal = int(TROOP_CONTENTS[0]), int(TROOP_CONTENTS[-1])
-        allStraights = [range(i, i + formationSize)
-                        for i in range(minVal, maxVal - formationSize + 2)]
+    """Return a seq of conceivable straight continuations."""
+    minVal, maxVal = int(TROOP_CONTENTS[0]), int(TROOP_CONTENTS[-1])
+    allStraights = [range(i, i + formationSize)
+                    for i in range(minVal, maxVal - formationSize + 2)]
 
-        cardValues = [int(card[0]) for card in cards]
+    cardValues = [int(card[0]) for card in cards]
 
-        out = []
-        for straight in allStraights:
-            for value in cardValues:
-                if value not in straight:
-                    break
-            else:
-                possibleStraight = list(straight)
-                for value in set(cardValues): # Skip already played cards.
-                    possibleStraight.remove(value)
-                out.append(list(map(str, possibleStraight)))
+    out = []
+    for straight in allStraights:
+        for value in cardValues:
+            if value not in straight:
+                break
+        else:
+            possibleStraight = list(straight)
+            for value in set(cardValues): # Skip already played cards.
+                possibleStraight.remove(value)
+            out.append(list(map(str, possibleStraight)))
 
-        return list(reversed(out)) # Strongest first
+    return list(reversed(out)) # Strongest first
 
 def check_formation_components(cards, formationSize=FORMATION_SIZE):
-        straight, triple, flush = False, False, False
+    straight, triple, flush = False, False, False
 
-        l = len(cards)
-        if l > 1:
-            values, suits = [c[0] for c in cards], [c[1] for c in cards]
-            values.sort()
+    l = len(cards)
+    if l > 1:
+        values, suits = [c[0] for c in cards], [c[1] for c in cards]
+        values.sort()
 
-            spacing = [int(values[i+1]) - int(values[i]) for i in range(l-1)]
-            if spacing.count(0) == l-1:
-                triple = True
-            elif 0 not in spacing and sum(spacing) <= formationSize - 1:
-                straight = True
+        spacing = [int(values[i+1]) - int(values[i]) for i in range(l-1)]
+        if spacing.count(0) == l-1:
+            triple = True
+        elif 0 not in spacing and sum(spacing) <= formationSize - 1:
+            straight = True
 
-            if suits.count(suits[0]) == l:
-                flush = True
+        if suits.count(suits[0]) == l:
+            flush = True
 
-            return straight, triple, flush
+        return straight, triple, flush
 
-        else: # With 0 or 1 cards played, all formations are still conceivable.
-            return True, True, True #TODO: that's not always true, is it? -bzax
+    else: # With 0 or 1 cards played, all formations are still conceivable.
+        return True, True, True
 
 def card_options(card, suit=None):
-        if suit:
-          suits = [suit]
-        else:
-          suits = TROOP_SUITS
-        if card == 'Al' or card == 'Da':
-            numbers = TROOP_CONTENTS
-        elif card == 'Sh':
-            numbers = [0, 1, 2]
-        elif card == 'Co':
-            numbers = [7]
-        else:
-            return [card]
-        return [str(number) + suit for number in numbers for suit in suits]
+    if suit:
+        suits = [suit]
+    else:
+        suits = TROOP_SUITS
+    if card == 'Al' or card == 'Da':
+        numbers = TROOP_CONTENTS
+    elif card == 'Sh':
+        numbers = [0, 1, 2]
+    elif card == 'Co':
+        numbers = [7]
+    else:
+        return [card]
+    return [str(number) + suit for number in numbers for suit in suits]
 
 def detect_formation(cards):
-        l = len(cards)
-        assert 3 <= l <= 4 # Allow for Mud.
+    l = len(cards)
+    assert 3 <= l <= 4 # Allow for Mud.
 
-        cardOptions = list(itertools.product(*[card_options(card) for card in cards]))
-        if len(cardOptions) == 1:
-            return detect_formation_no_wilds(cards)
-        else:
-            formations = list(map(detect_formation_no_wilds, cardOptions))
-            bestFormation = formations[0]
-            for formation in formations[1:]:
-                if compare_formations([formation, bestFormation], 0) == 0:
-                    bestFormation = formation
-            return bestFormation
+    cardOptions = list(itertools.product(*[card_options(card) for card in cards]))
+    if len(cardOptions) == 1:
+        return detect_formation_no_wilds(cards)
+    else:
+        formations = list(map(detect_formation_no_wilds, cardOptions))
+        bestFormation = formations[0]
+        for formation in formations[1:]:
+            if compare_formations([formation, bestFormation], 0) == 0:
+                bestFormation = formation
+        return bestFormation
 
 def detect_formation_no_wilds(cards):
-        straight, triple, flush = check_formation_components(cards, len(cards))
+    straight, triple, flush = check_formation_components(cards, len(cards))
 
-        if straight and flush:
-            fType = 'straight flush'
-        elif triple:
-            fType = 'triple'
-        elif flush:
-            fType = 'flush'
-        elif straight:
-            fType = 'straight'
-        else:
-            fType = 'sum'
+    if straight and flush:
+        fType = 'straight flush'
+    elif triple:
+        fType = 'triple'
+    elif flush:
+        fType = 'flush'
+    elif straight:
+        fType = 'straight'
+    else:
+        fType = 'sum'
 
-        return {'cards':cards,
-                'type':fType,
-                'strength':sum([int(c[0]) for c in cards])}
+    return {'cards':cards,
+            'type':fType,
+            'strength':sum([int(c[0]) for c in cards])}
 
 def compare_formations(formations, whoseTurn):
-        ranks = [POKER_HIERARCHY.index(f['type']) for f in formations]
-        if ranks[0] != ranks[1]:
-            return ranks.index(min(ranks))
-        else: # Same formation type
-            strengths = [f['strength'] for f in formations]
-            if strengths[0] != strengths[1]:
-                return strengths.index(max(strengths))
-            else: # Identical formations, but current player finished 2nd
-                return 1 - whoseTurn
+    ranks = [POKER_HIERARCHY.index(f['type']) for f in formations]
+    if ranks[0] != ranks[1]:
+        return ranks.index(min(ranks))
+    else: # Same formation type
+        strengths = [f['strength'] for f in formations]
+        if strengths[0] != strengths[1]:
+            return strengths.index(max(strengths))
+        else: # Identical formations, but current player finished 2nd
+            return 1 - whoseTurn
 
 def is_playable(r, tacticsCard):
     if tacticsCard in ('Fo', 'Mu'):
@@ -127,10 +127,9 @@ def is_playable(r, tacticsCard):
 
     yourFull = [i for i, f in enumerate(r.flags)
                 if f.winner == None and len(f.played[1 - me]) > 0]
-    yourTroops =  [card for flag in yourFull
-                      for card in r.flags[flag].played[1 - me]
-                          if card not in TACTICS
-                  ]
+    yourTroops = [card for flag in yourFull
+                     for card in r.flags[flag].played[1 - me]
+                         if card not in TACTICS]
 
     if tacticsCard == 'De':
         return yourFull != []
