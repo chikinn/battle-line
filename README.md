@@ -1,5 +1,5 @@
 # Battle Line
-#### Robert B. Kaspar, rbkaspar@gmail.com
+#### Robert B. Kaspar (rbkaspar@gmail.com) and Ben Zax
 
 Computer players for a poker-inspired two-player card game
 
