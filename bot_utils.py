@@ -46,12 +46,39 @@ def check_formation_components(cards, formationSize=FORMATION_SIZE):
             return straight, triple, flush
 
         else: # With 0 or 1 cards played, all formations are still conceivable.
-            return True, True, True
+            return True, True, True #TODO: that's not always true, is it? -bzax
 
-def detect_formation(cards): # Assume wilds pre-specified
+def card_options(card, suit=None):
+        if suit:
+          suits = [suit]
+        else:
+          suits = TROOP_SUITS
+        if card == 'Al' or card == 'Da':
+            numbers = TROOP_CONTENTS
+        elif card == 'Sh':
+            numbers = [0, 1, 2]
+        elif card == 'Co':
+            numbers = [7]
+        else:
+            return [card]
+        return [str(number) + suit for number in numbers for suit in suits]
+
+def detect_formation(cards):
         l = len(cards)
         assert 3 <= l <= 4 # Allow for Mud.
 
+        cardOptions = list(itertools.product(*[card_options(card) for card in cards]))
+        if len(cardOptions) == 1:
+            return detect_formation_no_wilds(cards)
+        else:
+            formations = list(map(detect_formation_no_wilds, cardOptions))
+            bestFormation = formations[0]
+            for formation in formations[1:]:
+                if compare_formations([formation, bestFormation], 0) == 0:
+                    bestFormation = formation
+            return bestFormation
+
+def detect_formation_no_wilds(cards):
         straight, triple, flush = check_formation_components(cards, len(cards))
 
         if straight and flush:
@@ -100,12 +127,16 @@ def is_playable(r, tacticsCard):
 
     yourFull = [i for i, f in enumerate(r.flags)
                 if f.winner == None and len(f.played[1 - me]) > 0]
-    
+    yourTroops =  [card for flag in yourFull
+                      for card in r.flags[flag].played[1 - me]
+                          if card not in TACTICS
+                  ]
+
     if tacticsCard == 'De':
         return yourFull != []
 
     if tacticsCard == 'Tr':
-        return yourFull != [] and myEmpty != []
+        return yourTroops != [] and myEmpty != []
 
     myFull = [i for i, f in enumerate(r.flags)
               if f.winner == None and len(f.played[me]) > 0]
