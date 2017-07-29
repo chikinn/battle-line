@@ -6,25 +6,34 @@ Computer players for a poker-inspired two-player card game
 Intended to run in Python 3 (change the shebang in `bl_wrapper.py`)
 
 ## Example usage
-    $ ./bl_wrapper.py random random
+    $ ./bl_wrapper.py greedy greedy 
 
 ## Snippet of example output
-    Random1: 3y 3b 2g 0o 0r 1p 1y
-             Plays 0r at 4
+    ---------------------------------------------------------------------------
+    Greedy1: Al 3y 3b 6o 5b 3o 7b
+             Plays 3o at 7
              Draws troop
     
-                                                           *           *    
-                                        0y    0r          6g    9p    9b    
-                      6p          5y    9g    3r    1b    8y    7p    6b    
-      Random1         2o    4b    4r    0g    2b    8g    4y    7r    3o    
-                      
-                      0     1*    2     3     4     5*    6     7*    8     
-                      
-      Random2         3g    0b    6r    7o    8b    6y    5p          4g    
-                      1o    4o    8p    5o    5g          2r          1r    
-                      2p    6o    7b    3p    9y                      8o    
-                       *           *     *     *                            
-    
-    Winner: Random2
+                             *                                                 
+                                                                               
+                            7g            5y     6r            4r     3o       
+                     4p     5r            0g     1g            1b     1r     1o
+      Greedy1        5o     6y     7r     4y     8r     2o     2y     0r     2r
+                     
+                     0*Mu   1      2*     3*     4*   Fo5      6      7      8*
+                     
+      Greedy2        2g     6g     5p     9p            8g     Sh     9y     Co
+                     8p     1y     6p     0o            4o     0b     3p     8o
+                     1p            0y                   8b     8y     2b     3g
+                     7y                                                        
+                                                         *      *      *       
+    ---------------------------------------------------------------------------
+    Winner: Greedy2
 
-TODO: add remaining tactics (Al/Da/Sh/Co/Sc), update proofs for tactics, make better players
+## Available players
+* **Random** (`random`) by RK<br>
+  Plays at random, never draws tactics
+* **Greedy** (`greedy`) by RK<br>
+  Like Random Player but insists on drawing and playing tactics
+
+TODO: make better ones!
