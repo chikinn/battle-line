@@ -67,7 +67,7 @@ def detect_formation(cards):
     l = len(cards)
     assert 3 <= l <= 4 # Allow for Mud.
 
-    cardOptions = list(itertools.product(*[card_options(card) for card in cards]))
+    cardOptions = list(itertools.product(*[card_options(c) for c in cards]))
     if len(cardOptions) == 1:
         return detect_formation_no_wilds(cards)
     else:

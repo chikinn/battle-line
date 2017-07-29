@@ -79,7 +79,7 @@ class Round():
 
     def draw(self, deckName):
         """Attempt to remove and return the top card of a deck."""
-        if self.decks[deckName] != []: # Doesn't return if deck is empty.
+        if deckName and self.decks[deckName] != []:
             return self.decks[deckName].pop()
 
     def prefer_deck(self, deckName):
@@ -115,12 +115,16 @@ class Round():
             assert 'played at most one more than opponent' # Legal play
             self.cardsLeft['tactics'].remove(card)
             self.play_tactics(card, target)
-
         else: # Troop
             self.cardsLeft['troop'].remove(card)
             self.play_troop(card, target)
 
-        self.replace_card(card, self.h[self.whoseTurn], deckName)
+        if card == 'Sc':
+            deckName = self.get_scout_discards(player) # 2-list
+            self.replace_card(card, self.h[self.whoseTurn], None)
+        else: # Draw a new card as usual.
+            self.replace_card(card, self.h[self.whoseTurn], deckName)
+
         return card, target, deckName
 
     def play_troop(self, card, target):
@@ -140,17 +144,7 @@ class Round():
         if card == 'Sc':
             assert (type(target), len(target)) == (tuple, 3) # Deck names
             for deckName in target:
-                hand.add(self.draw(deckName))
-
-            discards = self.get_scout_discards(p)
-            for discard in discards:
-                if discard in TACTICS:
-                    deck = 'tactics'
-                else:
-                    deck = 'troop'
-                self.decks['deck'].append(discard)
-                hand.drop(discard)
-            return # Skip regular discard step.
+                self.h[p].add(self.draw(self.prefer_deck(deckName)))
 
         elif card in ('De', 'Tr', 'Re'):
             if card == 'De':
@@ -418,8 +412,19 @@ class Round():
         for p in range(N_PLAYERS):
             flag.best[p] = self.best_case(flag.played[p], special)
 
-    def get_scout_discards(self):
-        pass
+    def get_scout_discards(self, player):
+        discards = player.scout_discards(self)
+        assert len(discards) == 2
+
+        for card in discards:
+            if card in TACTICS:
+                deck = 'tactics'
+            else:
+                deck = 'troop'
+            self.decks[deck].append(card)
+            self.h[self.whoseTurn].drop(card)
+
+        return discards
 
 
     class Flag():

@@ -26,7 +26,7 @@ class GreedyPlayer(Player):
             return None, None, None
 
         cards = r.h[me].cards
-        tactics = [c for c in cards if c != 'Sc']
+        tactics = [c for c in cards if c in TACTICS]
         playTroop = False
 
         if tactics != [] and r.tacticsAdvantage != 1 - me: # Play tactics!
@@ -65,6 +65,9 @@ class GreedyPlayer(Player):
 
                 elif card in ('Al', 'Da', 'Co', 'Sh'):
                     target = random.choice(mySlots)
+
+                elif card == 'Sc':
+                    target = ('tactics', 'tactics', 'tactics')
         else:
             playTroop = True
 
@@ -77,3 +80,12 @@ class GreedyPlayer(Player):
             target = random.choice(mySlots)
 
         return card, target, r.prefer_deck('tactics')
+
+    def scout_discards(self, r):
+        cards = r.h[r.whoseTurn].cards
+        troops = [c for c in cards if c not in TACTICS]
+        discardPool = troops
+        if troops == []:
+            discardPool = cards
+
+        return random.sample(discardPool, 2)
