@@ -39,6 +39,7 @@ class Player():
         """Override to interact with the framework on your player's turn."""
         raise Exception('Must override this method')
 
+
 class Round():
     """Store round info and interact with AI players.
 
@@ -77,25 +78,16 @@ class Round():
         [h.add(self.draw('troop')) for h in self.h for i in range(HAND_SIZE)]
 
     def draw(self, deckName):
-        """Attempt to remove and return the top card of the deck."""
-        if self.decks[deckName] != []: # Empty; draw from other deck.
+        """Attempt to remove and return the top card of a deck."""
+        if self.decks[deckName] != []: # Doesn't return if deck is empty.
             return self.decks[deckName].pop()
-        else: # Empty; draw from other deck.
-            otherDeckName = [key for key in self.decks if key != deckName][0]
-            if self.decks[otherDeckName] != []: # Rarely, both decks are empty!
-                return self.decks[otherDeckName].pop()
 
-    def prefer_tactics(self):
-        if len(self.decks['tactics']) > 0:
-            return 'tactics'
-        else:
-            return 'troop'
-
-    def prefer_troop(self):
-        if len(self.decks['troop']) > 0:
-            return 'troop'
-        else:
-            return 'tactics'
+    def prefer_deck(self, deckName):
+        assert deckName in self.decks.keys()
+        if len(self.decks[deckName]) > 0:
+            return deckName
+        else: # Other deck
+            return [key for key in self.decks if key != deckName][0]
 
     def replace_card(self, card, hand, deckName):
         """Discard from hand, then draw."""
