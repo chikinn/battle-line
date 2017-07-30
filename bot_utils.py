@@ -27,6 +27,7 @@ def possible_straights(cards, formationSize=FORMATION_SIZE):
     return list(reversed(out)) # Strongest first
 
 def check_formation_components(cards, formationSize=FORMATION_SIZE):
+    """Return whether the cards are on track for a straight/triple/flush."""
     straight, triple, flush = False, False, False
 
     l = len(cards)
@@ -48,11 +49,8 @@ def check_formation_components(cards, formationSize=FORMATION_SIZE):
     else: # With 0 or 1 cards played, all formations are still conceivable.
         return True, True, True
 
-def card_options(card, suit=None):
-    if suit:
-        suits = [suit]
-    else:
-        suits = TROOP_SUITS
+def card_options(card):
+    """Specify which values a wild tactics card can assume."""
     if card == 'Al' or card == 'Da':
         numbers = TROOP_CONTENTS
     elif card == 'Sh':
@@ -60,12 +58,20 @@ def card_options(card, suit=None):
     elif card == 'Co':
         numbers = [7]
     else:
-        return [card]
-    return [str(number) + suit for number in numbers for suit in suits]
+        return [card] # Not a wild tactics card
+    return [str(number) + suit for number in numbers for suit in TROOP_SUITS]
 
 def detect_formation(cards):
+    """Return the strongest formation a complete set of cards achieves.
+    
+    A formation is stored in a dict keyed as follows.
+      'cards' (list): Cards that make up the formation
+      'type' (str): 'straight flush', 'triple', 'flush', 'straight', or 'sum'
+      'strength' (float): Normally an int (simply the sum of the cards' values)
+                          but can be adjusted by EPSILON to break a tie.
+    """
     l = len(cards)
-    assert 3 <= l <= 4 # Allow for Mud.
+    assert FORMATION_SIZE <= l <= FORMATION_SIZE + 1 # Allow for Mud.
 
     cardOptions = list(itertools.product(*[card_options(c) for c in cards]))
     if len(cardOptions) == 1:
@@ -79,6 +85,7 @@ def detect_formation(cards):
         return bestFormation
 
 def detect_formation_no_wilds(cards):
+    """Same as detect_formation, but assumes no wild tactics present."""
     straight, triple, flush = check_formation_components(cards, len(cards))
 
     if straight and flush:
@@ -97,6 +104,7 @@ def detect_formation_no_wilds(cards):
             'strength':sum([int(c[0]) for c in cards])}
 
 def compare_formations(formations, whoseTurn):
+    """Return the player whose formation is stronger.  Account for ties."""
     ranks = [POKER_HIERARCHY.index(f['type']) for f in formations]
     if ranks[0] != ranks[1]:
         return ranks.index(min(ranks))
@@ -108,6 +116,10 @@ def compare_formations(formations, whoseTurn):
             return 1 - whoseTurn
 
 def is_playable(r, tacticsCard):
+    """Return whether the current player can play this tactics card.
+
+	Does not consider tactics advantage.
+    """
     if tacticsCard in ('Fo', 'Mu'):
         return True
 

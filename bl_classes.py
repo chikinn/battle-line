@@ -10,6 +10,9 @@ N_FLAGS          = 9
 STANDARD_WIN     = 5
 BREAKTHROUGH_WIN = 3
 FORMATION_SIZE   = 3
+HAND_SIZE        = 7
+EPSILON          = 0.1 # Arbitrary number on (0,1) to break formation ties
+POKER_HIERARCHY  = ('straight flush', 'triple', 'flush', 'straight', 'sum')
 TROOP_SUITS      = 'roygbp'
 TROOP_CONTENTS   = '0123456789' # 0 is lowest.
 TACTICS          = {'Al':'Alexander',      'Co':'Companion Cavalry',
@@ -17,18 +20,18 @@ TACTICS          = {'Al':'Alexander',      'Co':'Companion Cavalry',
                     'Fo':'Fog',            'Mu':'Mud',
                     'Re':'Redeploy',       'Sc':'Scout',
                     'Sh':'Shield Bearers', 'Tr':'Traitor'}
-HAND_SIZE        = 7
-POKER_HIERARCHY  = ('straight flush', 'triple', 'flush', 'straight', 'sum')
-EPSILON          = 0.1 # Arbitrary number on (0,1) to break formation ties
 
 import random, sys, copy, itertools
 from bot_utils import *
 
-
 class Player():
-    """Class to inherit when making a new AI player."""
-    def __init__(self, p, verbosity):
-        super(Player, self).__init__()
+    """Class to inherit when making a new AI player.
+    
+    You may wish to use Random Player or Greedy Player as a guide.
+    """
+
+    def __init__(self, p):
+        super(Player, self).__init__() # OK to override, but still call super.
 
     @classmethod
     def get_name(cls):
@@ -36,40 +39,61 @@ class Player():
         raise Exception('Must override this method')
 
     def play(self, r):
-        """Override to interact with the framework on your player's turn."""
+        """Override to submit a move on your player's turn.
+        
+        If playing a troop card, return a 3-tuple of the card name, the flag
+        number where it should be played, and a deck to draw from.  Playing a
+        tactics card is more complicated; see Round.play_tactics."""
+
+        raise Exception('Must override this method')
+
+    def scout_discards(self, r):
+        """Override to return a list of two discards after playing Scout."""
         raise Exception('Must override this method')
 
 
 class Round():
     """Store round info and interact with AI players.
 
-    Methods that interact with AIs: 'get_play', 'get_scout_discards'.
+    Methods that interact with AIs: 'get_play', 'get_scout_discards'
+
+    Formation dicts are explained in 'detect_formation' (bot_utils.py).
+
+    best & bestMud (dict): Best formation reachable at an empty flag
+    flags (list of 9 Flag): See Flag class
+    h (list of 2 Hand): See Hand class
+    playedLeader (int or None): Who (player 0 or 1) played Alexander or Darius
+    tacticsAdvantage (int or None): Who has played fewer tactics cards
+    winner (int or None): Who won the round
+    whoseTurn (int): Current player
+    verbose (bool): Whether to print play-by-play output (or just state winner)
+    cardsLeft (dict): Lists of cards publicly remaining in each deck
+    decks (dict): Lists of ordered draw piles for each deck (don't cheat!)
     """
 
-    def __init__(self, players, names, verbosity):
+    def __init__(self, players, names, verbose):
         """Instantiate a Round and its Flag and Hand sub-objects."""
         initialBest = detect_formation(
                  [v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-3:]]) # Red 7, 8, 9
-        self.best = initialBest # Best formation reachable at an empty flag
+        self.best = initialBest
         initialBestMud = detect_formation(
-                 [v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-4:]]) # Red 6-10
+                 [v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-4:]]) # Red 6-9
         self.bestMud = initialBestMud
         self.flags = [self.Flag(initialBest) for i in range(N_FLAGS)]
 
         self.h = [self.Hand(i, names[i]) for i in range(N_PLAYERS)]
 
-        self.playedLeader = None # Track who has played Alexander or Darius.
+        self.playedLeader = None
         self.tacticsAdvantage = None
         self.winner = None
         self.whoseTurn = 0
-        self.verbosity = verbosity
+        self.verbose = verbose
 
     def generate_decks_and_deal_hands(self):
         """Construct decks, shuffle, and deal."""
         troopDeck = [n + s for n in TROOP_CONTENTS for s in TROOP_SUITS]
         tacticsDeck = [key for key in TACTICS]
 
-        # Start tracking unplayed cards.
         self.cardsLeft = {'troop':troopDeck[:], 'tactics':tacticsDeck[:]}
 
         [random.shuffle(d) for d in (troopDeck, tacticsDeck)]
@@ -82,112 +106,128 @@ class Round():
         if deckName and self.decks[deckName] != []:
             return self.decks[deckName].pop()
 
-    def prefer_deck(self, deckName):
-        assert deckName in self.decks.keys()
-        if len(self.decks[deckName]) > 0:
-            return deckName
-        else: # Other deck
-            return [key for key in self.decks if key != deckName][0]
-
     def replace_card(self, card, hand, deckName):
-        """Discard from hand, then draw."""
+        """Discard from hand, then draw (if a deck is specified)."""
         hand.drop(card)
         
         draw = self.draw(deckName)
         if draw != None:
             hand.add(draw)
 
+    def prefer_deck(self, deckName):
+        """Return name of the passed deck, or if empty, of the other deck."""
+        assert deckName in self.decks.keys()
+        if len(self.decks[deckName]) > 0:
+            return deckName
+        else: # Other deck
+            return [key for key in self.decks if key != deckName][0]
+
     def update_tactics_advantage(self):
-        p = self.whoseTurn
-        assert self.tacticsAdvantage != p
+        """When a tactics card is played, keep track of who has played more."""
+        you = 1 - self.whoseTurn
+        assert self.tacticsAdvantage != you # Check legality.
         if self.tacticsAdvantage == None:
-            self.tacticsAdvantage = 1 - p
-        else:
+            self.tacticsAdvantage = you
+        else: # I had the advantage.
             self.tacticsAdvantage = None
 
     def get_play(self, player):
         """Execute AI's play for current turn.  Return the play."""
+        me = self.whoseTurn
         card, target, deckName = player.play(self)
-        if card == None: # Player passed; do nothing.
+
+        if card == None: # Player passed; do nothing (TODO: check legality).
             return
 
         if card in TACTICS:
-            assert 'played at most one more than opponent' # Legal play
             self.cardsLeft['tactics'].remove(card)
             self.play_tactics(card, target)
+            self.update_tactics_advantage()
         else: # Troop
             self.cardsLeft['troop'].remove(card)
             self.play_troop(card, target)
 
         if card == 'Sc':
             deckName = self.get_scout_discards(player) # 2-list
-            self.replace_card(card, self.h[self.whoseTurn], None)
+            self.replace_card(card, self.h[me], None)
         else: # Draw a new card as usual.
-            self.replace_card(card, self.h[self.whoseTurn], deckName)
+            self.replace_card(card, self.h[me], deckName)
 
         return card, target, deckName
 
+    def get_scout_discards(self, player):
+        """Process and return AI's discards (after Scout)."""
+        discards = player.scout_discards(self)
+        assert len(discards) == 2
+
+        for card in discards:
+            if card in TACTICS:
+                deck = 'tactics'
+            else:
+                deck = 'troop'
+            self.decks[deck].append(card)
+            self.h[self.whoseTurn].drop(card)
+
+        return discards
+
     def play_troop(self, card, target):
-        p = self.whoseTurn
+        me = self.whoseTurn
         flag = self.flags[target]
 
-        formationSize = FORMATION_SIZE
-        if flag.mud:
-            formationSize += 1
-        assert len(flag.played[p]) < formationSize # Legal play
-
-        flag.played[p].append(card)
+        assert flag.has_slot(me) # Legal play
+        flag.played[me].append(card)
 
     def play_tactics(self, card, target):
-        p = self.whoseTurn
+        me = self.whoseTurn
 
         if card == 'Sc':
             assert (type(target), len(target)) == (tuple, 3) # Deck names
             for deckName in target:
-                self.h[p].add(self.draw(self.prefer_deck(deckName)))
+                self.h[me].add(self.draw(self.prefer_deck(deckName)))
 
         elif card in ('De', 'Tr', 'Re'):
             if card == 'De':
                 assert len(target) == 1
                 targetCard, targetDestination = target[0], None
-                startSide = 1 - p
+                startSide = 1 - me
             else: # Tr, Re
                 assert (type(target), len(target)) == (tuple, 2)
                 targetCard, targetDestination = target
 
                 if card == 'Tr':
-                    startSide, endSide = 1 - p, p
+                    startSide, endSide = 1 - me, me
                 else: # Re
-                    startSide, endSide = p, p
+                    startSide, endSide = me, me
 
             for f in self.flags:
                 if targetCard in f.played[startSide]:
                     f.played[startSide].remove(targetCard)
+                    self.update_flag(f, None, True)
                     break
             else:
-                pass # Error -- target not found
+                raise Exception('Target not found')
 
             if targetDestination != None:
                 f = self.flags[targetDestination]
+                self.update_flag(f, None, True)
                 f.played[endSide].append(targetCard)
 
         elif card == 'Fo':
-            self.fog_update(self.flags[target])
+            self.flags[target].fog = True
+            self.update_flag(self.flags[target], None, True)
 
         elif card == 'Mu':
-            self.mud_update(self.flags[target])
+            self.flags[target].mud = True
+            self.update_flag(self.flags[target], None, True)
 
         else: # Al, Da, Co, or Sh
             if card in ('Al', 'Da'):
-                assert not self.playedLeader == self.whoseTurn # Legal play
-                self.playedLeader = self.whoseTurn
+                assert self.playedLeader != me # Legal play
+                self.playedLeader = me
             self.play_troop(card, target) # Play like a troop.
 
-    def available(self, card):
-        """Return whether a card might still be available to draw and play."""
-        return card in self.cardsLeft['troop'] + self.cardsLeft['tactics']
-
     def best_case(self, cards, special=[]):
+        """Return the best formation attainable for a group of cards."""
         cardOptions = [list(tup) for tup in
             itertools.product(*[card_options(card) for card in cards])
         ]
@@ -207,18 +247,18 @@ class Round():
             return bestFormation
 
     def best_case_no_wilds(self, cards, special=[]):
-        """Return the best possible continuation of a formation."""
+        """Same as best_case, but assumes no wild tactics present."""
         formationSize = FORMATION_SIZE
-        if "mud" in special:
+        if 'mud' in special:
             formationSize += 1
-        if "fog" in special:
+        if 'fog' in special:
             return self.best_fog(cards, formationSize)
 
         if len(cards) == formationSize:
             return detect_formation(cards)
 
         if cards == []:
-            if "mud" in special:
+            if 'mud' in special:
                 return self.bestMud
             else:
                 return self.best
@@ -240,14 +280,14 @@ class Round():
                                  [value + firstSuit for value in s])
 
         if triple:
-            formation = copy.copy(cards)         ###
-            for card in self.cardsLeft['troop']: ### TODO: loop through suits
-                if card[0] == firstValue:        ### instead, more efficiently.
-                    formation += [card]          ###
+            formation = copy.copy(cards)
+            for card in self.cardsLeft['troop']:
+                if card[0] == firstValue:
+                    formation += [card]
                     if len(formation) == formationSize:
                         return detect_formation(formation)
 
-        if flush: ### TODO: too similar to triple block above; consolidate?
+        if flush:
             formation = copy.copy(cards)
             for value in TROOP_CONTENTS[::-1]:
                 if value + firstSuit in self.cardsLeft['troop']:
@@ -255,7 +295,7 @@ class Round():
                     if len(formation) == formationSize:
                         return detect_formation(formation)
 
-        if straight: ### TODO: optimize.
+        if straight:
             for s in possibleStraights:
                 formation = copy.copy(cards)
                 for value in s:
@@ -271,6 +311,7 @@ class Round():
         return self.best_fog(cards, formationSize) # Sum
 
     def best_fog(self, cards, formationSize):
+        """Same as best_case_no_wilds, but ignores formations."""
         cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
         nEmptySlots = formationSize - len(cards)
         return detect_formation(cards + cardsLeft[:nEmptySlots])
@@ -308,7 +349,7 @@ class Round():
                 if bestCase['type'] == fType:
                     return bestCase
 
-    def update_flag(self, flag, justPlayed):
+    def update_flag(self, flag, justPlayed, forceUpdate=False):
         """Find the new best continuation at the flag, if necessary."""
         special = []
         formationSize = FORMATION_SIZE
@@ -319,11 +360,12 @@ class Round():
             special += ['fog']
 
         for p in range(N_PLAYERS):
-            if (justPlayed in flag.best[p]['cards']) !=\
-               (justPlayed in flag.played[p]):
+            if forceUpdate or (justPlayed in flag.best[p]['cards']) !=\
+                              (justPlayed in flag.played[p]):
                 flag.best[p] = self.best_case(flag.played[p], special)
 
     def check_winner(self):
+        """Check for a majority or breakthrough victory.  Return any winner."""
         flagOutcomes = [f.winner for f in self.flags]
 
         for player in range(N_PLAYERS):
@@ -348,6 +390,7 @@ class Round():
         return None
 
     def show_flags(self):
+        """Jankily print the board state."""
         formationSize = FORMATION_SIZE + 1 # Allow for Mud.
 
         padLength = 18
@@ -395,46 +438,17 @@ class Round():
         [print(line[:79]) for line in lines]
         print('-'*79)
 
-    def fog_update(self, flag):
-        flag.fog = True
-        formationSize = FORMATION_SIZE
-        if flag.mud:
-            formationSize += 1
-
-        for p in range(N_PLAYERS):
-            flag.best[p] = self.best_fog(flag.played[p], formationSize)
-
-    def mud_update(self, flag): ### TODO: update best after De/Re/Tr.
-        flag.mud = True
-        special = ['mud']
-        if flag.fog:
-            special += ['fog']
-        for p in range(N_PLAYERS):
-            flag.best[p] = self.best_case(flag.played[p], special)
-
-    def get_scout_discards(self, player):
-        discards = player.scout_discards(self)
-        assert len(discards) == 2
-
-        for card in discards:
-            if card in TACTICS:
-                deck = 'tactics'
-            else:
-                deck = 'troop'
-            self.decks[deck].append(card)
-            self.h[self.whoseTurn].drop(card)
-
-        return discards
-
 
     class Flag():
-        """Lorem ipsum
+        """Track all cards played at one flag.
 
-        Sic transit
+        played (list of 2 list): Troop-like cards played on each side
+        best (list of 2 dict): Best formation still achievable on each side
+        fog, mud (bool): Whether said card is in play here
+        winner (int or None): Who won the flag
         """
 
         def __init__(self, initialBest):
-            """Instantiate a Flag."""
             self.played = [[], []]
             self.best = [initialBest, initialBest]
             self.fog = False
@@ -442,9 +456,11 @@ class Round():
             self.winner = None
 
         def has_card(self, p):
+            """Check whether the player has played here."""
             return self.winner == None and self.played[p] != []
 
         def has_slot(self, p):
+            """Check whether the player can play here."""
             nSlots = FORMATION_SIZE
             if self.mud:
                 nSlots += 1
@@ -478,13 +494,12 @@ class Round():
     class Hand():
         """Manage one player's hand of cards.
 
-        cards (list of dict): One dict per card.  Keys:
-          name (str): card name (e.g., '2r' is a red two)
-        seat (int): Player ID number (starting player is 0).
+        cards (list of str): One str per card (e.g., '2r' is a red two)
+        seat (int): Player ID number (starting player is 0, other player is 1)
+        name (str): Player name to show in output
         """
 
         def __init__(self, seat, name):
-            """Instantiate a Hand."""
             self.cards = []
             self.seat = seat
             self.name = name
@@ -495,9 +510,7 @@ class Round():
             return len(self.name + ': ')
 
         def add(self, newCard):
-            """Add a card to the hand."""
             self.cards.append(newCard)
 
         def drop(self, card):
-            """Discard a card from the hand."""
             self.cards.remove(card)

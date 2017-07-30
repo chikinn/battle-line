@@ -7,14 +7,9 @@ Random Player.
 from bl_classes import *
 
 class GreedyPlayer(Player):
-
     @classmethod
     def get_name(cls):
         return 'greedy'
-
-    def __init__(self, *args):
-        """Can be overridden to perform initialization, but must call super."""
-        super(GreedyPlayer, self).__init__(*args)
 
     def play(self, r):
         me = r.whoseTurn
@@ -23,7 +18,7 @@ class GreedyPlayer(Player):
         yourCards = [i for i, f in enumerate(r.flags) if f.has_card(1 - me)]
 
         if len(mySlots) == 0:
-            return None, None, None
+            return None, None, None # Pass.
 
         cards = r.h[me].cards
         tactics = [c for c in cards if c in TACTICS]
