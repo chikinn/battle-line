@@ -67,8 +67,9 @@ def detect_formation(cards):
     A formation is stored in a dict keyed as follows.
       'cards' (list): Cards that make up the formation
       'type' (str): 'straight flush', 'triple', 'flush', 'straight', or 'sum'
-      'strength' (float): Normally an int (simply the sum of the cards' values)
-                          but can be adjusted by EPSILON to break a tie.
+      'strength' (float): Three-digit int, where hundreds place indicates type
+                          and remaining digits indicate sum of card values;
+                          can be adjusted by EPSILON (float) to break a tie.
     """
     l = len(cards)
     assert FORMATION_SIZE <= l <= FORMATION_SIZE + 1 # Allow for Mud.
@@ -99,21 +100,21 @@ def detect_formation_no_wilds(cards):
     else:
         fType = 'sum'
 
+    formationTypeStrength = 100 * POKER_HIERARCHY[::-1].index(fType)
+    sumOfCardValues = sum([int(c[0]) for c in cards]) 
+
     return {'cards':cards,
             'type':fType,
-            'strength':sum([int(c[0]) for c in cards])}
+            'strength':formationTypeStrength + sumOfCardValues}
 
 def compare_formations(formations, whoseTurn):
     """Return the player whose formation is stronger.  Account for ties."""
     ranks = [POKER_HIERARCHY.index(f['type']) for f in formations]
-    if ranks[0] != ranks[1]:
-        return ranks.index(min(ranks))
-    else: # Same formation type
-        strengths = [f['strength'] for f in formations]
-        if strengths[0] != strengths[1]:
-            return strengths.index(max(strengths))
-        else: # Identical formations, but current player finished 2nd
-            return 1 - whoseTurn
+    strengths = [f['strength'] for f in formations]
+    if strengths[0] != strengths[1]:
+        return strengths.index(max(strengths))
+    else: # Identical formations, but current player finished 2nd
+        return 1 - whoseTurn
 
 def is_playable(r, tacticsCard):
     """Return whether the current player can play this tactics card.
