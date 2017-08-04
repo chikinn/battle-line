@@ -213,11 +213,11 @@ class Round():
                 f.played[endSide].append(targetCard)
 
         elif card == 'Fo':
-            self.flags[target].fog = True
+            self.flags[target].special.append('fog')
             self.update_flag(self.flags[target], None, True)
 
         elif card == 'Mu':
-            self.flags[target].mud = True
+            self.flags[target].special.append('mud')
             self.update_flag(self.flags[target], None, True)
 
         else: # Al, Da, Co, or Sh
@@ -351,18 +351,14 @@ class Round():
 
     def update_flag(self, flag, justPlayed, forceUpdate=False):
         """Find the new best continuation at the flag, if necessary."""
-        special = []
         formationSize = FORMATION_SIZE
-        if flag.mud:
-            special = ['mud']
+        if 'mud' in flag.special:
             formationSize += 1
-        if flag.fog:
-            special += ['fog']
 
         for p in range(N_PLAYERS):
             if forceUpdate or (justPlayed in flag.best[p]['cards']) !=\
                               (justPlayed in flag.played[p]):
-                flag.best[p] = self.best_case(flag.played[p], special)
+                flag.best[p] = self.best_case(flag.played[p], flag.special)
 
     def check_winner(self):
         """Check for a majority or breakthrough victory.  Return any winner."""
@@ -409,9 +405,9 @@ class Round():
                 center = '{}      '.format(i)
                 p1     = ' *     '
             lines[0]  += p0
-            if flag.mud:
+            if 'mud' in flag.special:
                 center = center[:2] + 'Mu' + '   '
-            if flag.fog:
+            if 'fog' in flag.special:
                 lines[6] = lines[6][:-2] + 'Fo'
             lines[6]  += center
             lines[12] += p1
@@ -429,7 +425,7 @@ class Round():
                         lines[iLine] += ' ' * 7
 
         for f in self.flags:
-            if f.mud:
+            if 'mud' in f.special:
                 break
         else: # Remove extra display lines if Mud not in play.
             del lines[1]
@@ -444,15 +440,14 @@ class Round():
 
         played (list of 2 list): Troop-like cards played on each side
         best (list of 2 dict): Best formation still achievable on each side
-        fog, mud (bool): Whether said card is in play here
+        special (list of str): Whether 'fog' or 'mud' is in play here
         winner (int or None): Who won the flag
         """
 
         def __init__(self, initialBest):
             self.played = [[], []]
             self.best = [initialBest, initialBest]
-            self.fog = False
-            self.mud = False
+            self.special = []
             self.winner = None
 
         def has_card(self, p):
@@ -462,7 +457,7 @@ class Round():
         def has_slot(self, p):
             """Check whether the player can play here."""
             nSlots = FORMATION_SIZE
-            if self.mud:
+            if 'mud' in self.special:
                 nSlots += 1
             return self.winner == None and len(self.played[p]) < nSlots
 
@@ -470,7 +465,7 @@ class Round():
             """Determine whether a flag is won, either normally or by proof."""
             if self.winner == None:
                 formationSize = FORMATION_SIZE
-                if self.mud:
+                if 'mud' in self.special:
                     formationSize += 1
     
                 formations = copy.copy(self.played)
