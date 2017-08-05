@@ -1,15 +1,14 @@
 """A simple tactics player.
 
-Greedy Player plays as many tactics cards as possible.  Otherwise, plays like
-Random Player.
+Tactful Player plays tactics whenever possible.  Otherwise, plays like Kenny.
 """
 
 from bl_classes import *
 
-class GreedyPlayer(Player):
+class TactfulPlayer(Player):
     @classmethod
     def get_name(cls):
-        return 'greedy'
+        return 'tactful'
 
     def play(self, r):
         me = r.whoseTurn

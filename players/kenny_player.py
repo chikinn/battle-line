@@ -1,15 +1,15 @@
 """The simplest possible player.
 
-Random Player plays only troops, at random, and draws troops if available.
+Kenny plays only troops, at random, and draws troops if available.
 """
 
 from bl_classes import *
 
-class RandomPlayer(Player):
+class KennyPlayer(Player):
 
     @classmethod
     def get_name(cls):
-        return 'random'
+        return 'kenny'
 
     def __init__(self, *args):
         super(RandomPlayer, self).__init__(*args)
