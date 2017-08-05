@@ -34,7 +34,7 @@ Intended to run in Python 3 (change the shebang in `bl_wrapper.py`)
 
 ## Available players
 * **Kenny** (`kenny`) by RK<br>
-  Veteran AI also skilled at Hanabi, plays at random, never draws tactics
+  Veteran AI also skilled at Skat, plays at random, never draws tactics
 * **Tactful** (`tactful`) by RK<br>
   Like Kenny but draws and plays only tactics
 * **Racist** (`racist`) by Jake Kaspar<br>
