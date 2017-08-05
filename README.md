@@ -6,34 +6,38 @@ Computer players for a poker-inspired two-player card game
 Intended to run in Python 3 (change the shebang in `bl_wrapper.py`)
 
 ## Example usage
-    $ ./bl_wrapper.py greedy greedy 
+    $ ./bl_wrapper.py racist naive
 
 ## Snippet of example output
     ---------------------------------------------------------------------------
-    Greedy1: Al 3y 3b 6o 5b 3o 7b
-             Plays 3o at 7
-             Draws troop
+    Racist: 1o 2b 2g 1g 7y 0y 6y
+            Passes
     
-                             *                                                 
+    Naive : 0r 1p 1y 2y 4y 3r 4r
+            Plays 4y at 0
+            Draws troop
+    
+                      *                    *      *                    *      *
+                     4y            9r     8b     0g                   4p     4b
+                     6g     7o     5r     7b     3g            2o     2p     5b
+      Naive          5g     7r     6r     9b     8g     9o     4o     6p     3b
+                     
+                     0      1*     2      3      4      5      6*     7      8 
+                     
+      Racist         1r     8o     8y     7g     6b     7p     3p     4g       
+                     5p     3o     9y            1b     9p     0p     6o       
+                     9g     5o     5y            0b     8p     0o              
                                                                                
-                            7g            5y     6r            4r     3o       
-                     4p     5r            0g     1g            1b     1r     1o
-      Greedy1        5o     6y     7r     4y     8r     2o     2y     0r     2r
-                     
-                     0*Mu   1      2*     3*     4*   Fo5      6      7      8*
-                     
-      Greedy2        2g     6g     5p     9p            8g     Sh     9y     Co
-                     8p     1y     6p     0o            4o     0b     3p     8o
-                     1p            0y                   8b     8y     2b     3g
-                     7y                                                        
-                                                         *      *      *       
+                                    *                    *                     
     ---------------------------------------------------------------------------
-    Winner: Greedy2
+    Winner: Naive
 
 ## Available players
-* **Random** (`random`) by RK<br>
-  Plays at random, never draws tactics
-* **Greedy** (`greedy`) by RK<br>
-  Like Random Player but insists on drawing and playing tactics
-
-TODO: make better ones!
+* **Kenny** (`kenny`) by RK<br>
+  Veteran AI also skilled at Hanabi, plays at random, never draws tactics
+* **Tactful** (`tactful`) by RK<br>
+  Like Kenny but draws and plays only tactics
+* **Racist** (`racist`) by Jake Kaspar<br>
+  Believes colors should be segregated, no tactics
+* **Naïve** (`naive`) by RK<br>
+  Dreams big, no tactics

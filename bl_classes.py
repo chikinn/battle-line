@@ -427,9 +427,8 @@ class Round():
         for f in self.flags:
             if 'mud' in f.special:
                 break
-        else: # Remove extra display lines if Mud not in play.
+        else: # Remove extra display line at the top if Mud not in play.
             del lines[1]
-            del lines[11]
 
         [print(line[:79]) for line in lines]
         print('-'*79)
