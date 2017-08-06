@@ -41,5 +41,5 @@ Intended to run in Python 3 (change the shebang in `bl_wrapper.py`)
   Believes colors should be segregated, no tactics
 * **Naïve** (`naive`) by RK<br>
   Dreams big, no tactics
-* **OCD** (`ocd`) by JK
+* **OCD** (`ocd`) by JK<br>
   Three of a kind soothes the orderly mind, no tactics
