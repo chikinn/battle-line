@@ -21,7 +21,7 @@ TACTICS          = {'Al':'Alexander',      'Co':'Companion Cavalry',
                     'Re':'Redeploy',       'Sc':'Scout',
                     'Sh':'Shield Bearers', 'Tr':'Traitor'}
 
-import random, sys, copy, itertools
+import random, sys, copy, itertools, functools
 from bot_utils import *
 
 class Player():
@@ -74,10 +74,10 @@ class Round():
     def __init__(self, players, names, verbose):
         """Instantiate a Round and its Flag and Hand sub-objects."""
         initialBest = detect_formation(
-                 [v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-3:]]) # Red 7, 8, 9
+            tuple(v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-3:])) # Red 7, 8, 9
         self.best = initialBest
         initialBestMud = detect_formation(
-                 [v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-4:]]) # Red 6-9
+            tuple(v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-4:])) # Red 6-9
         self.bestMud = initialBestMud
         self.flags = [self.Flag(initialBest) for i in range(N_FLAGS)]
 
@@ -228,18 +228,17 @@ class Round():
 
     def best_case(self, cards, special=[]):
         """Return the best formation attainable for a group of cards."""
+        cards = list(cards)
         cardOptions = [list(tup) for tup in
             itertools.product(*[card_options(card) for card in cards])
         ]
         if len(cardOptions) == 1:
-            return self.best_case_no_wilds(cards, special)
+            return self.best_case_no_wilds(tuple(cards), special)
         else:
-            formations = list(
-                map(
-                    lambda cards: self.best_case_no_wilds(cards, special),
-                    cardOptions
-                )
-            )
+            formations = list(map(
+                lambda cards: self.best_case_no_wilds(tuple(cards), special),
+                cardOptions
+                ))
             bestFormation = formations[0]
             for formation in formations[1:]:
                 if compare_formations([formation, bestFormation], 0) == 0:
@@ -248,6 +247,7 @@ class Round():
 
     def best_case_no_wilds(self, cards, special=[]):
         """Same as best_case, but assumes no wild tactics present."""
+        cards = list(cards)
         formationSize = FORMATION_SIZE
         if 'mud' in special:
             formationSize += 1
@@ -255,7 +255,7 @@ class Round():
             return self.best_fog(cards, formationSize)
 
         if len(cards) == formationSize:
-            return detect_formation(cards)
+            return detect_formation(tuple(cards))
 
         if cards == []:
             if 'mud' in special:
@@ -264,10 +264,10 @@ class Round():
                 return self.best
 
         firstValue, firstSuit = cards[0]
-        straight, triple, flush = check_formation_components(cards, formationSize)
+        straight, triple, flush = check_formation_components(tuple(cards), formationSize)
 
         if straight:
-            possibleStraights = possible_straights(cards, formationSize)
+            possibleStraights = possible_straights(tuple(cards), formationSize)
 
             if flush:
                 for s in possibleStraights:
@@ -276,8 +276,8 @@ class Round():
                         if card not in self.cardsLeft['troop']:
                             break
                     else:
-                        return detect_formation(cards +\
-                                 [value + firstSuit for value in s])
+                        return detect_formation(tuple(\
+                                   cards + [value + firstSuit for value in s]))
 
         if triple:
             formation = copy.copy(cards)
@@ -285,7 +285,7 @@ class Round():
                 if card[0] == firstValue:
                     formation += [card]
                     if len(formation) == formationSize:
-                        return detect_formation(formation)
+                        return detect_formation(tuple(formation))
 
         if flush:
             formation = copy.copy(cards)
@@ -293,7 +293,7 @@ class Round():
                 if value + firstSuit in self.cardsLeft['troop']:
                     formation.append(value + firstSuit)
                     if len(formation) == formationSize:
-                        return detect_formation(formation)
+                        return detect_formation(tuple(formation))
 
         if straight:
             for s in possibleStraights:
@@ -306,7 +306,7 @@ class Round():
                     else: # Value is not available.
                         break
                 else: # All values are available.
-                    return detect_formation(formation)
+                    return detect_formation(tuple(formation))
 
         return self.best_fog(cards, formationSize) # Sum
 
@@ -314,22 +314,22 @@ class Round():
         """Same as best_case_no_wilds, but ignores formations."""
         cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
         nEmptySlots = formationSize - len(cards)
-        return detect_formation(cards + cardsLeft[:nEmptySlots])
+        return detect_formation(tuple(cards + cardsLeft[:nEmptySlots]))
 
     def best_empty(self, mud=False): ### TODO: Loop through best_case instead?
         """Find best formation (self.best) still playable at an empty flag."""
         special = []
         oldBest = self.best # Exclude better formations from search.
-        formationSize = FORMATION_SIZE
+        fSize = FORMATION_SIZE
         if mud:
             special += ['mud']
             oldBest = self.bestMud
-            formationSize += 1
+            fSize += 1
 
         cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
         for fType in POKER_HIERARCHY[POKER_HIERARCHY.index(oldBest['type']):]:
             if fType == 'sum':
-                return self.best_case(cardsLeft[:formationSize], special)
+                return self.best_case(tuple(cardsLeft[:fSize]), special)
             
             if fType == 'flush':
                 bestSoFar = {'strength':0}
@@ -345,7 +345,7 @@ class Round():
 
             ### TODO: Don't double-check same-valued triples, straights.
             for card in cardsLeft:
-                bestCase = self.best_case([card], special)
+                bestCase = self.best_case((card,), special)
                 if bestCase['type'] == fType:
                     return bestCase
 
@@ -358,7 +358,8 @@ class Round():
         for p in range(N_PLAYERS):
             if forceUpdate or (justPlayed in flag.best[p]['cards']) !=\
                               (justPlayed in flag.played[p]):
-                flag.best[p] = self.best_case(flag.played[p], flag.special)
+                flag.best[p] = self.best_case(tuple(flag.played[p]),\
+                                              flag.special)
 
     def check_winner(self):
         """Check for a majority or breakthrough victory.  Return any winner."""
@@ -467,13 +468,12 @@ class Round():
                 if 'mud' in self.special:
                     formationSize += 1
     
-                formations = copy.copy(self.played)
+                formations = [tuple(l) for l in self.played]
                 finishedPlayers = [p for p in range(N_PLAYERS)
                                    if len(formations[p]) == formationSize]
                 
                 if len(finishedPlayers) == N_PLAYERS: # Both players ready 
-                    self.winner = compare_formations\
-                           (list(map(detect_formation, formations)), whoseTurn)
+                    self.winner = compare_formations(list(map(detect_formation, formations)), whoseTurn)
                 elif len(finishedPlayers) == 1: # One attacker seeks a proof.
                     for p in range(N_PLAYERS):
                         if p not in finishedPlayers: # Defender

@@ -12,7 +12,7 @@ class KennyPlayer(Player):
         return 'kenny'
 
     def __init__(self, *args):
-        super(RandomPlayer, self).__init__(*args)
+        super(KennyPlayer, self).__init__(*args)
 
     def play(self, r):
         me = r.whoseTurn

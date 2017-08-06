@@ -5,6 +5,7 @@ will use it, however, then it doesn't belong here."""
 
 from bl_classes import * # Need to import?  Do it in bl_classes.py.
 
+@functools.lru_cache(maxsize=None)
 def possible_straights(cards, formationSize=FORMATION_SIZE):
     """Return a seq of conceivable straight continuations."""
     minVal, maxVal = int(TROOP_CONTENTS[0]), int(TROOP_CONTENTS[-1])
@@ -26,6 +27,7 @@ def possible_straights(cards, formationSize=FORMATION_SIZE):
 
     return list(reversed(out)) # Strongest first
 
+@functools.lru_cache(maxsize=None)
 def check_formation_components(cards, formationSize=FORMATION_SIZE):
     """Return whether the cards are on track for a straight/triple/flush."""
     straight, triple, flush = False, False, False
@@ -61,6 +63,7 @@ def card_options(card):
         return [card] # Not a wild tactics card
     return [str(number) + suit for number in numbers for suit in TROOP_SUITS]
 
+@functools.lru_cache(maxsize=None)
 def detect_formation(cards):
     """Return the strongest formation a complete set of cards achieves.
     
@@ -76,7 +79,7 @@ def detect_formation(cards):
 
     cardOptions = list(itertools.product(*[card_options(c) for c in cards]))
     if len(cardOptions) == 1:
-        return detect_formation_no_wilds(cards)
+        return detect_formation_no_wilds(tuple(cards))
     else:
         formations = list(map(detect_formation_no_wilds, cardOptions))
         bestFormation = formations[0]
@@ -85,9 +88,10 @@ def detect_formation(cards):
                 bestFormation = formation
         return bestFormation
 
+@functools.lru_cache(maxsize=None)
 def detect_formation_no_wilds(cards):
     """Same as detect_formation, but assumes no wild tactics present."""
-    straight, triple, flush = check_formation_components(cards, len(cards))
+    straight, triple, flush = check_formation_components(tuple(cards), len(cards))
 
     if straight and flush:
         fType = 'straight flush'
