@@ -9,7 +9,7 @@ class OCDPlayer(Player):
 
     @classmethod
     def get_name(cls):
-        return 'OCD'
+        return 'ocd'
 
     def play(self, r):
         me = r.whoseTurn
