@@ -33,13 +33,16 @@ Intended to run in Python 3 (change the shebang in `bl_wrapper.py`)
     Winner: Naive
 
 ## Available players
+No tactics
 * **Kenny** (`kenny`) by RK<br>
-  Veteran AI also skilled at Skat, plays at random, never draws tactics
+  Veteran AI also skilled at Skat, plays at random
+* **Racist** (`racist`) by Jake Kaspar<br>
+  Believes colors should be segregated
+* **Naïve** (`naive`) by RK<br>
+  Dreams big
+* **OCD** (`ocd`) by JK<br>
+  Three of a kind soothes the orderly mind
+
+Tactics
 * **Tactful** (`tactful`) by RK<br>
   Like Kenny but draws and plays only tactics
-* **Racist** (`racist`) by Jake Kaspar<br>
-  Believes colors should be segregated, no tactics
-* **Naïve** (`naive`) by RK<br>
-  Dreams big, no tactics
-* **OCD** (`ocd`) by JK<br>
-  Three of a kind soothes the orderly mind, no tactics
