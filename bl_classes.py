@@ -330,6 +330,7 @@ class Round():
             fSize += 1
 
         cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
+        # TODO: does this list always have just one item?
         for fType in POKER_HIERARCHY[POKER_HIERARCHY.index(oldBest['type']):]:
             if fType == 'sum':
                 return self.best_case(tuple(cardsLeft[:fSize]), special)
@@ -476,7 +477,8 @@ class Round():
                                    if len(formations[p]) == formationSize]
                 
                 if len(finishedPlayers) == N_PLAYERS: # Both players ready 
-                    self.winner = compare_formations(list(map(detect_formation, formations)), whoseTurn)
+                    self.winner = compare_formations(list(map(
+                        detect_formation, formations)), whoseTurn)
                 elif len(finishedPlayers) == 1: # One attacker seeks a proof.
                     for p in range(N_PLAYERS):
                         if p not in finishedPlayers: # Defender
@@ -484,7 +486,8 @@ class Round():
                             # Tie goes to attacker since he finished first.
                             formations[p]['strength'] -= EPSILON
                             formations[1 - p] = self.best[1 - p]
-                            if compare_formations(formations, whoseTurn) == 1 - p:
+                            if compare_formations(formations, whoseTurn)\
+                                    == 1 - p:
                                 self.winner = 1 - p # Attacker wins.
 
 
