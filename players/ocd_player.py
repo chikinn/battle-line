@@ -1,6 +1,7 @@
-"""A simple player
+"""A stickler for matching.
 
-OCD player tries to sort the cards by number
+OCD Player tries to sort the cards by number: 1s at the first flag, 2s at the
+second, etc.  Doesn't play 10s!
 """
 
 from bl_classes import *
@@ -16,14 +17,13 @@ class OCDPlayer(Player):
         cards = r.h[me].cards
         
         for card in cards:
-
             if card in TACTICS:
                 continue
 
-            if  TROOP_CONTENTS.index(card[0])  == 0:
+            if TROOP_CONTENTS.index(card[0]) == 0:
                 continue
 
-            number = TROOP_CONTENTS.index(card[0])-1
+            number = TROOP_CONTENTS.index(card[0]) - 1
             if r.flags[number].has_slot(me):
                 flag = r.flags[number]
                 return card, number, r.prefer_deck('troop')
@@ -34,4 +34,3 @@ class OCDPlayer(Player):
             return None, None, None # Pass.
 
         return cards[0], random.choice(playableFlags), r.prefer_deck('troop')
-

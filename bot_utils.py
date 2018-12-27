@@ -1,4 +1,4 @@
-"""Library of generic functions to make writing AI players easier.
+"""Library of generic functions to make writing players easier.
 
 Feel free to add to this file.  If a function is so specific that only one bot
 will use it, however, then it doesn't belong here."""
@@ -53,7 +53,7 @@ def check_formation_components(cards, formationSize=FORMATION_SIZE):
 
 def card_options(card):
     """Specify which values a wild tactics card can assume."""
-    if card == 'Al' or card == 'Da':
+    if card in ('Al', 'Da'):
         numbers = TROOP_CONTENTS
     elif card == 'Sh':
         numbers = [0, 1, 2]
@@ -61,7 +61,7 @@ def card_options(card):
         numbers = [7]
     else:
         return [card] # Not a wild tactics card
-    return [str(number) + suit for number in numbers for suit in TROOP_SUITS]
+    return [str(n) + suit for n in numbers for suit in TROOP_SUITS]
 
 @functools.lru_cache(maxsize=None)
 def detect_formation(cards):
@@ -91,7 +91,8 @@ def detect_formation(cards):
 @functools.lru_cache(maxsize=None)
 def detect_formation_no_wilds(cards):
     """Same as detect_formation, but assumes no wild tactics present."""
-    straight, triple, flush = check_formation_components(tuple(cards), len(cards))
+    straight, triple, flush = check_formation_components(tuple(cards),
+                                                         len(cards))
 
     if straight and flush:
         fType = 'straight flush'

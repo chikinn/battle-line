@@ -10,9 +10,6 @@ class KennyPlayer(Player):
     def get_name(cls):
         return 'kenny'
 
-    def __init__(self, *args):
-        super(KennyPlayer, self).__init__(*args)
-
     def play(self, r):
         me = r.whoseTurn
 

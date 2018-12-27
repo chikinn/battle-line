@@ -1,6 +1,7 @@
-"""A simple player
+"""A color segragator.
 
-Racist Player plays to get flushes
+Racist attempts to build a rainbow out of the first six flags: red only at flag
+1, orange only at flag 2, etc.  The remaining three are a dumping ground.
 """
 
 from bl_classes import *
@@ -16,7 +17,6 @@ class RacistPlayer(Player):
         cards = r.h[me].cards
         
         for card in cards:
-
             if card in TACTICS:
                 continue
 
@@ -31,4 +31,3 @@ class RacistPlayer(Player):
             return None, None, None # Pass.
 
         return cards[0], random.choice(playableFlags), r.prefer_deck('troop')
-

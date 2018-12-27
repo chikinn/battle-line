@@ -1,10 +1,11 @@
 """Low-level classes for tracking state of a Battle Line round.
 
 Intended to be imported by a higher-level game manager (play_bl).  The meat of
-this file is the Round class, which stores all of the game info, along with the
-nested Hand and Flag classes.
+this file is the Round class, which stores all game info, along with the nested
+Hand and Flag classes.
 """
 
+# Note: these constant definitions must precede certain import statements.
 N_PLAYERS        = 2
 N_FLAGS          = 9
 STANDARD_WIN     = 5
@@ -21,13 +22,15 @@ TACTICS          = {'Al':'Alexander',      'Co':'Companion Cavalry',
                     'Re':'Redeploy',       'Sc':'Scout',
                     'Sh':'Shield Bearers', 'Tr':'Traitor'}
 
+
 import random, sys, copy, itertools, functools
 from bot_utils import *
+
 
 class Player():
     """Class to inherit when making a new AI player.
     
-    You may wish to use Random Player or Greedy Player as a guide.
+    You may wish to use Kenny Player as a guide.
     """
 
     def __init__(self, p):
@@ -74,7 +77,7 @@ class Round():
     def __init__(self, players, names, verbose):
         """Instantiate a Round and its Flag and Hand sub-objects."""
         initialBest = detect_formation(
-            tuple(v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-3:])) # Red 7, 8, 9
+            tuple(v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-3:])) # Red 7-9
         self.best = initialBest
         initialBestMud = detect_formation(
             tuple(v+TROOP_SUITS[0] for v in TROOP_CONTENTS[-4:])) # Red 6-9
@@ -149,6 +152,7 @@ class Round():
 
         if card == 'Sc':
             deckName = self.get_scout_discards(player) # 2-list
+            # Discard Scout.  Don't draw normally this turn.
             self.replace_card(card, self.h[me], None)
         else: # Draw a new card as usual.
             self.replace_card(card, self.h[me], deckName)
@@ -230,15 +234,13 @@ class Round():
         """Return the best formation attainable for a group of cards."""
         cards = list(cards)
         cardOptions = [list(tup) for tup in
-            itertools.product(*[card_options(card) for card in cards])
-        ]
+            itertools.product(*[card_options(card) for card in cards])]
         if len(cardOptions) == 1:
             return self.best_case_no_wilds(tuple(cards), special)
         else:
             formations = list(map(
                 lambda cards: self.best_case_no_wilds(tuple(cards), special),
-                cardOptions
-                ))
+                              cardOptions))
             bestFormation = formations[0]
             for formation in formations[1:]:
                 if compare_formations([formation, bestFormation], 0) == 0:
@@ -264,7 +266,8 @@ class Round():
                 return self.best
 
         firstValue, firstSuit = cards[0]
-        straight, triple, flush = check_formation_components(tuple(cards), formationSize)
+        straight, triple, flush = \
+            check_formation_components(tuple(cards), formationSize)
 
         if straight:
             possibleStraights = possible_straights(tuple(cards), formationSize)

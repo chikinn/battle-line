@@ -9,7 +9,7 @@ from bl_classes import *
 
 def play_one_round(players, names, verbose):
     """Play a full round and return the winner (str)."""
-    r = Round(players, names, verbose) # Instance of one Battle Line round
+    r = Round(players, names, verbose) # Round master object -- used everywhere
     r.generate_decks_and_deal_hands()
 
     while r.winner == None: # Take turns until game ends.
@@ -18,9 +18,9 @@ def play_one_round(players, names, verbose):
             padLength = hand.show()
 
         play = r.get_play(players[r.whoseTurn]) # Do a turn.
-        if play == None: # Allow passing
+        if play == None: # Allow passing.
             if verbose:
-                print(padLength * ' ' + 'Passes' + '\n')
+                print(padLength * ' ' + 'Passes\n')
         else:
             card, target, deckName = play
 
@@ -30,9 +30,9 @@ def play_one_round(players, names, verbose):
             if card in r.bestMud['cards']:
                 r.bestMud = r.best_empty(True)
 
-            for flag in r.flags:
-                r.update_flag(flag, card) # Keep track of best continuation.
-                flag.try_to_resolve(r.whoseTurn)
+            for f in r.flags:
+                r.update_flag(f, card) # Track best possible continuation.
+                f.try_to_resolve(r.whoseTurn)
 
             r.winner = r.check_winner()
 

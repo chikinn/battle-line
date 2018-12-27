@@ -35,7 +35,7 @@ Intended to run in Python 3 (change the shebang in `bl_wrapper.py`)
 ## Available players
 No tactics
 * **Kenny** (`kenny`) by RK<br>
-  Veteran AI also skilled at Skat, plays at random
+  Veteran AI also skilled at skat; plays at random
 * **Racist** (`racist`) by Jake Kaspar<br>
   Believes colors should be segregated
 * **Naïve** (`naive`) by RK<br>
