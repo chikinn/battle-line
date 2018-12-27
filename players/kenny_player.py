@@ -6,7 +6,6 @@ Kenny plays only troops, at random, and draws troops if available.
 from bl_classes import *
 
 class KennyPlayer(Player):
-
     @classmethod
     def get_name(cls):
         return 'kenny'

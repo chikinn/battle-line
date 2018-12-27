@@ -4,13 +4,12 @@ Naive Player plays and draws only troops.  He considers playing each card from
 his hand at each flag and chooses the pairing that might lead to the strongest
 formation later, if only he draws that final card -- which, of course, he will.
 
-He prefers to play in the center of the board.
+Ceteris paribus, he prefers to play in the center of the board.
 """
 
 from bl_classes import *
 
 class NaivePlayer(Player):
-
     @classmethod
     def get_name(cls):
         return 'naive'

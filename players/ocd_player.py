@@ -6,7 +6,6 @@ OCD player tries to sort the cards by number
 from bl_classes import *
 
 class OCDPlayer(Player):
-
     @classmethod
     def get_name(cls):
         return 'ocd'

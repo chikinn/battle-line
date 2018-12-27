@@ -6,7 +6,6 @@ Racist Player plays to get flushes
 from bl_classes import *
 
 class RacistPlayer(Player):
-
     @classmethod
     def get_name(cls):
         return 'racist'
