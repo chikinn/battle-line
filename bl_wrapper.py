@@ -24,7 +24,6 @@ verbose = True
 if args.n_rounds > 1:
     verbose = False
 
-#def main():
 # Load players.
 players = []
 rawNames = args.declaredPlayers
@@ -56,10 +55,10 @@ for i in range(len(names)):
 winners = []
 for i in range(args.n_rounds):
     if verbose:
-        print('\n' + 'ROUND {}:'.format(i))
+        print('\nROUND {}:'.format(i))
     winners.append(play_one_round(players, names, verbose))
     if not verbose:
-        print('Winner: ' + str(winners[-1]))
+        print('Winner: {}'.format(winners[-1]))
 
 # Print average scores.
 if not verbose:
@@ -69,8 +68,8 @@ if len(winners) > 1: # Print stats only if there were multiple rounds.
         ratio = winners.count(name) / args.n_rounds
         stdErr = math.sqrt(ratio * (1 - ratio) / args.n_rounds)
         if ratio >= 0.5:
-            print("{0} wins {1:.3f} +/- {2:.3f}".format(name, ratio, stdErr))
+            print('{0} wins {1:.3f} +/- {2:.3f}'.format(name, ratio, stdErr))
             break
  
 elif verbose: # Still print score for silent single round.
-    print('Winner: ' + winners[0])
+    print('Winner: {}'.format(winners[0]))
