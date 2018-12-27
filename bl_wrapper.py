@@ -69,7 +69,7 @@ if len(winners) > 1: # Print stats only if there were multiple rounds.
         ratio = winners.count(name) / args.n_rounds
         stdErr = math.sqrt(ratio * (1 - ratio) / args.n_rounds)
         if ratio >= 0.5:
-            print(name + " wins " + str(ratio) + " +/- " + str(stdErr)[:5])
+            print("{0} wins {1:.3f} +/- {2:.3f}".format(name, ratio, stdErr))
             break
  
 elif verbose: # Still print score for silent single round.
