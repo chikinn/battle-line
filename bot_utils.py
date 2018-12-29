@@ -160,3 +160,37 @@ def is_playable(r, tacticsCard):
 
     if tacticsCard == 'Re':
         return myFull != []
+
+def wins_flag(r, card, f): # TODO: troop cards
+    """Return whether this card wins this flag for the current player.
+
+    Does not consider tactics advantage.
+    """
+    p = r.whoseTurn
+
+    if (f.winner is not None) or (not is_playable(r, card)):
+        return False
+
+    hands = [f.played[i].copy() for i in range(N_PLAYERS)]
+    if card in ('Al', 'Da', 'Sh', 'Co'):
+        hands[p] += card
+        formations = [r.best_case(hand) for hand in hands]
+        if f.has_slot(p) and compare_formations(formations) == p:
+            return True
+    
+    if card == 'De':
+        pass
+
+    if card == 'Re':
+        pass
+
+    if card == 'Tr':
+        pass
+
+    if card == 'Fo':
+        formations = [r.best_case(f.played[i], special=['fog'])
+                      for i in range(len(N_PLAYERS)]
+        if (not f.has_slot(p)) and (compare_formations(formations) == p):
+            return True
+    
+    return False # Mud and Scout never immediately win a flag.

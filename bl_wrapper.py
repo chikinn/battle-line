@@ -9,6 +9,9 @@ from players import *
 availablePlayers = {}
 for playerSubClass in Player.__subclasses__():
     availablePlayers[playerSubClass.get_name()] = playerSubClass
+    # Sniper Player inherits Naive Player, not vanilla Player.
+    for playerSubSubClass in playerSubClass.__subclasses__():
+        availablePlayers[playerSubSubClass.get_name()] = playerSubSubClass
 
 # Parse command-line args.
 parser = argparse.ArgumentParser(description='Process some integers.')
