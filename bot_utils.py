@@ -175,7 +175,7 @@ def wins_flag(r, card, f): # TODO: troop cards
     if card in ('Al', 'Da', 'Sh', 'Co'):
         hands[p] += card
         formations = [r.best_case(hand) for hand in hands]
-        if f.has_slot(p) and compare_formations(formations) == p:
+        if f.slots_left(p) > 0 and compare_formations(formations) == p:
             return True
     
     if card == 'De':
@@ -189,7 +189,7 @@ def wins_flag(r, card, f): # TODO: troop cards
 
     if card == 'Fo':
         formations = [r.best_case(f.played[i], special=['fog'])
-                      for i in range(len(N_PLAYERS)]
+                      for i in range(N_PLAYERS)]
         if (not f.has_slot(p)) and (compare_formations(formations) == p):
             return True
     

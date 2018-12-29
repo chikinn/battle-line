@@ -18,7 +18,8 @@ class KennyPlayer(Player):
         while card in TACTICS:
             card = random.choice(cards)
 
-        playableFlags = [i for i, f in enumerate(r.flags) if f.has_slot(me)]
+        playableFlags = [i for i, f in enumerate(r.flags)
+                         if f.slots_left(me) > 0]
 
         if len(playableFlags) == 0:
             return None, None, None # Pass.

@@ -178,7 +178,7 @@ class Round():
         me = self.whoseTurn
         flag = self.flags[target]
 
-        assert flag.has_slot(me) # Legal play
+        assert flag.slots_left(me) > 0 # Legal play
         flag.played[me].append(card)
 
     def play_tactics(self, card, target):
@@ -458,12 +458,15 @@ class Round():
             """Check whether the player has played here."""
             return self.winner == None and self.played[p] != []
 
-        def has_slot(self, p):
+        def slots_left(self, p):
             """Check whether the player can play here."""
+            if self.winner != None:
+                return 0
+
             nSlots = FORMATION_SIZE
             if 'mud' in self.special:
                 nSlots += 1
-            return self.winner == None and len(self.played[p]) < nSlots
+            return nSlots - len(self.played[p])
 
         def try_to_resolve(self, whoseTurn):
             """Determine whether a flag is won, either normally or by proof."""

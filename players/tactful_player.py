@@ -12,7 +12,8 @@ class TactfulPlayer(Player):
 
     def play(self, r):
         me = r.whoseTurn
-        mySlots   = [i for i, f in enumerate(r.flags) if f.has_slot(me)]
+        mySlots   = [i for i, f in enumerate(r.flags)
+                     if f.slots_left(me) > 0]
         myCards   = [i for i, f in enumerate(r.flags) if f.has_card(me)]
         yourCards = [i for i, f in enumerate(r.flags) if f.has_card(1 - me)]
 

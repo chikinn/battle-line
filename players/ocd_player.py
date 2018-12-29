@@ -24,11 +24,12 @@ class OCDPlayer(Player):
                 continue
 
             number = TROOP_CONTENTS.index(card[0]) - 1
-            if r.flags[number].has_slot(me):
+            if r.flags[number].slots_left(me) > 0:
                 flag = r.flags[number]
                 return card, number, r.prefer_deck('troop')
 
-        playableFlags = [i for i, f in enumerate(r.flags) if f.has_slot(me)]
+        playableFlags = [i for i, f in enumerate(r.flags)
+                         if f.slots_left(me) > 0]
 
         if len(playableFlags) == 0:
             return None, None, None # Pass.
