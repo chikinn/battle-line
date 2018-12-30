@@ -67,8 +67,9 @@ for i in range(args.n_rounds):
 if not verbose:
     print('')
 if len(winners) > 1: # Print stats only if there were multiple rounds.
+    nDraws = args.n_rounds - sum([winners.count(n) for n in names])
     for name in names:
-        ratio = winners.count(name) / args.n_rounds
+        ratio = (winners.count(name) + 0.5 * nDraws) / args.n_rounds
         stdErr = math.sqrt(ratio * (1 - ratio) / args.n_rounds)
         if ratio >= 0.5:
             print('{0} wins {1:.3f} +/- {2:.3f}'.format(name, ratio, stdErr))

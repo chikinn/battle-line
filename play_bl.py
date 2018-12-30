@@ -12,6 +12,7 @@ def play_one_round(players, names, verbose):
     r = Round(players, names, verbose) # Round master object -- used everywhere
     r.generate_decks_and_deal_hands()
 
+    lastPlayerPassed = False
     while r.winner == None: # Take turns until game ends.
         hand = r.h[r.whoseTurn]
         if verbose:
@@ -21,7 +22,11 @@ def play_one_round(players, names, verbose):
         if play == None: # Allow passing.
             if verbose:
                 print(padLength * ' ' + 'Passes\n')
+            if lastPlayerPassed: # Two consecutive draws
+                return 'none (drawn)'
+            lastPlayerPassed = True
         else:
+            lastPlayerPassed = False
             card, target, deckName = play
 
             if card in r.best['cards']:

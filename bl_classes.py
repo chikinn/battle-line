@@ -140,7 +140,7 @@ class Round():
         card, target, deckName = player.play(self)
 
         if card == None: # Player passed; do nothing (TODO: check legality).
-            return
+            return None
 
         if card in TACTICS:
             self.cardsLeft['tactics'].remove(card)
