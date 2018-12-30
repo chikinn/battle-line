@@ -19,11 +19,11 @@ class SniperPlayer(NaivePlayer):
         if winningPlay is not None:
             return winningPlay
 
+        if False not in [c in TACTICS for c in r.h[r.whoseTurn].cards]:
+            return None, None, None # Hand is all Tactics; pass.
+
         # Play recommended by parent non-tactics player
-        oldPlay = super().play(r)
-        if oldPlay == None: # Pass.
-            return oldPlay
-        card, flag, deck = oldPlay
+        card, flag, deck = super().play(r)
 
         if self.exists_winning_tactics_draw(r):
             deck = r.prefer_deck('tactics')
