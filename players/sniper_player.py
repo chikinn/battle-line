@@ -20,7 +20,10 @@ class SniperPlayer(NaivePlayer):
             return winningPlay
 
         # Play recommended by parent non-tactics player
-        card, flag, deck = super().play(r)
+        oldPlay = super().play(r)
+        if oldPlay == None: # Pass.
+            return oldPlay
+        card, flag, deck = oldPlay
 
         if self.exists_winning_tactics_draw(r):
             deck = r.prefer_deck('tactics')
