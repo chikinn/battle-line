@@ -196,7 +196,8 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
 
     # Reuse this logic later for Traitor.
     def deserter_hurts_you(canTargetTactics=True):
-        if f.slots_left(p) != 0: # My formation isn't ready yet.
+        # My formation isn't ready yet, or flag is already won.
+        if f.slots_left(p) != 0 or f.winner is not None:
             return None
         for yourCard in f.played[1-p]:
             if yourCard in TACTICS and not canTargetTactics:
@@ -232,6 +233,8 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
             if f.slots_left(p) != 1: # I have no room for your card here.
                 return None
             for otherF in r.flags:
+                if otherF.winner is not None:
+                    continue
                 for yourCard in otherF.played[1-p]:
                     if yourCard in TACTICS:
                         continue
