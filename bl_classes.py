@@ -183,6 +183,8 @@ class Round():
 
     def play_tactics(self, card, target):
         me = self.whoseTurn
+        print(card, target)
+        self.show_flags()
 
         if card == 'Sc':
             assert (type(target), len(target)) == (tuple, 3) # Deck names
@@ -488,10 +490,10 @@ class Round():
                             formations[p] = copy.copy(self.best[p])
                             # Tie goes to attacker since he finished first.
                             formations[p]['strength'] -= EPSILON
-                            formations[1 - p] = self.best[1 - p]
+                            formations[1-p] = self.best[1-p]
                             if compare_formations(formations, whoseTurn)\
-                                    == 1 - p:
-                                self.winner = 1 - p # Attacker wins.
+                                    == 1-p:
+                                self.winner = 1-p # Attacker wins.
 
 
     class Hand():

@@ -3,7 +3,7 @@
 Feel free to add to this file.  If a function is so specific that only one bot
 will use it, however, then it doesn't belong here."""
 
-from bl_classes import * # Need to import?  Do it in bl_classes.py.
+from bl_classes import * # Need a package?  Import it in bl_classes.py.
 
 @functools.lru_cache(maxsize=None)
 def possible_straights(cards, formationSize=FORMATION_SIZE):
@@ -161,36 +161,121 @@ def is_playable(r, tacticsCard):
     if tacticsCard == 'Re':
         return myFull != []
 
-def wins_flag(r, card, f): # TODO: troop cards
-    """Return whether this card wins this flag for the current player.
+def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
+    """Check whether this card can win this flag for the current player.  If
+    not, returns None.  If so, returns the card's target (usually, this flag).
 
     Does not consider tactics advantage.
     """
-    p = r.whoseTurn
-
-    if (f.winner is not None) or (not is_playable(r, card)):
-        return False
-
-    hands = [f.played[i].copy() for i in range(N_PLAYERS)]
+    f = r.flags[iFlag]
+    if f.winner is not None:
+        return None
+    
     if card in ('Al', 'Da', 'Sh', 'Co'):
-        hands[p] += card
+        if f.slots_left(p) != 1:
+            return None
+        hands = [f.played[i].copy() for i in range(N_PLAYERS)]
+        hands[p].append(card)
         formations = [r.best_case(hand) for hand in hands]
-        if f.slots_left(p) > 0 and compare_formations(formations) == p:
-            return True
+        if compare_formations(formations, p) == p:
+            return iFlag
     
-    if card == 'De':
-        pass
-
     if card == 'Re':
-        pass
+        # Removing a card can't win.  Adding a card from another flag can.
+        if f.slots_left(p) != 1:
+            return None
+        for otherF in r.flags:
+            if otherF == f:
+                continue # Can't redeploy from this flag to itself.
+            for myCard in otherF.played[p]:
+                hands = [f.played[i].copy() for i in range(N_PLAYERS)]
+                hands[p].append(myCard)
+                formations = [r.best_case(hand) for hand in hands]
+                if compare_formations(formations, p) == p:
+                    return myCard, iFlag
 
-    if card == 'Tr':
-        pass
-
-    if card == 'Fo':
-        formations = [r.best_case(f.played[i], special=['fog'])
-                      for i in range(N_PLAYERS)]
-        if (not f.has_slot(p)) and (compare_formations(formations) == p):
-            return True
+    # Reuse this logic later for Traitor.
+    def deserter_hurts_you(canTargetTactics=True):
+        if f.slots_left(p) != 0: # My formation isn't ready yet.
+            return None
+        for yourCard in f.played[1-p]:
+            if yourCard in TACTICS and not canTargetTactics:
+                continue
+            hands = [f.played[i].copy() for i in range(N_PLAYERS)]
+            hands[1-p].remove(yourCard)
+            formations = [r.best_case(hand) for hand in hands]
+            if compare_formations(formations, p) == p:
+                return (yourCard,)
+        return None
+    if card == 'De':
+        return deserter_hurts_you()
     
-    return False # Mud and Scout never immediately win a flag.
+    if card == 'Tr':
+        def traitor_hurts_you():
+            """Target a card "you" need.  Like Deserter but can't hit Tactics.
+            """
+            deserterHurtsYou = deserter_hurts_you(canTargetTactics=False)
+            if deserterHurtsYou is not None:
+                yourCard = deserterHurtsYou[0]
+                # Find a slot at any flag for the card I'll steal from you.
+                for i, fl in enumerate(r.flags):
+                    if fl.slots_left(p) > 0:
+                        return yourCard, i
+            return None
+        
+        def traitor_helps_me():
+            """Target a card "I" need.  A bit like Redeploy but can't hit
+            Tactics.
+
+            Also covers the case where stealing both hurts you and help me.
+            """
+            if f.slots_left(p) != 1: # I have no room for your card here.
+                return None
+            for otherF in r.flags:
+                for yourCard in otherF.played[1-p]:
+                    if yourCard in TACTICS:
+                        continue
+                    hands = [f.played[i].copy() for i in range(N_PLAYERS)]
+                    if otherF == f:
+                        hands[1-p].remove(yourCard)
+                    hands[p].append(yourCard)
+                    formations = [r.best_case(hand) for hand in hands]
+                    if compare_formations(formations, p) == p:
+                        return yourCard, iFlag
+            return None
+
+        def first_not_none(lst):
+            for x in lst:
+                if x is not None:
+                    return x
+            return None
+        
+        return first_not_none([traitor_hurts_you(), traitor_helps_me()])
+    
+    if card == 'Fo':
+        newSpecial = f.special.copy()
+        newSpecial.append('fog')
+        formations = [r.best_case(f.played[i], special=newSpecial)
+                      for i in range(N_PLAYERS)]
+        if f.slots_left(p) == 0 and compare_formations(formations, p) == p:
+            return iFlag
+    
+    return None # Mud and Scout never immediately win a flag.
+
+def flag_wins_game(r, iFlag, p):
+    flagStates = [f.winner for f in r.flags].copy()
+    flagStates[iFlag] = p
+
+    if flagStates.count(p) == STANDARD_WIN:
+        return True
+
+    breakthroughStreak = 0
+    for i in range(N_FLAGS):
+        if flagStates[i] == p:
+            breakthroughStreak += 1
+        else:
+            breakthroughStreak = 0
+        if breakthroughStreak == BREAKTHROUGH_WIN:
+            return True
+
+    return False
