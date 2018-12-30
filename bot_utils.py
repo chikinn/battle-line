@@ -64,7 +64,7 @@ def card_options(card):
     return [str(n) + suit for n in numbers for suit in TROOP_SUITS]
 
 @functools.lru_cache(maxsize=None)
-def detect_formation(cards):
+def detect_formation(cards, special=()):
     """Return the strongest formation a complete set of cards achieves.
     
     A formation is stored in a dict keyed as follows.
@@ -79,9 +79,10 @@ def detect_formation(cards):
 
     cardOptions = list(itertools.product(*[card_options(c) for c in cards]))
     if len(cardOptions) == 1:
-        return detect_formation_no_wilds(tuple(cards))
+        return detect_formation_no_wilds(tuple(cards), tuple(special))
     else:
-        formations = list(map(detect_formation_no_wilds, cardOptions))
+        formations = [detect_formation_no_wilds(tuple(c), tuple(special))
+                      for c in cardOptions]
         bestFormation = formations[0]
         for formation in formations[1:]:
             if compare_formations([formation, bestFormation], 0) == 0:
@@ -89,12 +90,14 @@ def detect_formation(cards):
         return bestFormation
 
 @functools.lru_cache(maxsize=None)
-def detect_formation_no_wilds(cards):
+def detect_formation_no_wilds(cards, special=()):
     """Same as detect_formation, but assumes no wild tactics present."""
     straight, triple, flush = check_formation_components(tuple(cards),
                                                          len(cards))
 
-    if straight and flush:
+    if 'fog' in special:
+        fType = 'sum'
+    elif straight and flush:
         fType = 'straight flush'
     elif triple:
         fType = 'triple'
@@ -258,7 +261,7 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
     if card == 'Fo':
         newSpecial = f.special.copy()
         newSpecial.append('fog')
-        formations = [r.best_case(f.played[i], special=newSpecial)
+        formations = [r.best_case(f.played[i], newSpecial)
                       for i in range(N_PLAYERS)]
         if f.slots_left(p) == 0 and compare_formations(formations, p) == p:
             return iFlag

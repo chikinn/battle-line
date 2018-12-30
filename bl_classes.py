@@ -317,7 +317,8 @@ class Round():
         """Same as best_case_no_wilds, but ignores formations."""
         cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
         nEmptySlots = formationSize - len(cards)
-        return detect_formation(tuple(cards + cardsLeft[:nEmptySlots]))
+        return detect_formation(tuple(cards + cardsLeft[:nEmptySlots]),
+                                special=('fog'))
 
     def best_empty(self, mud=False): ### TODO: Loop through best_case instead?
         """Find best formation (self.best) still playable at an empty flag."""
