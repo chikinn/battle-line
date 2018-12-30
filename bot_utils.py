@@ -171,6 +171,7 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
     Does not consider tactics advantage.
     """
     f = r.flags[iFlag]
+    special = f.special.copy()
     if f.winner is not None:
         return None
     
@@ -179,7 +180,7 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
             return None
         hands = [f.played[i].copy() for i in range(N_PLAYERS)]
         hands[p].append(card)
-        formations = [r.best_case(hand) for hand in hands]
+        formations = [r.best_case(hand, special) for hand in hands]
         if compare_formations(formations, p) == p:
             return iFlag
     
@@ -193,7 +194,7 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
             for myCard in otherF.played[p]:
                 hands = [f.played[i].copy() for i in range(N_PLAYERS)]
                 hands[p].append(myCard)
-                formations = [r.best_case(hand) for hand in hands]
+                formations = [r.best_case(hand, special) for hand in hands]
                 if compare_formations(formations, p) == p:
                     return myCard, iFlag
 
@@ -207,7 +208,7 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
                 continue
             hands = [f.played[i].copy() for i in range(N_PLAYERS)]
             hands[1-p].remove(yourCard)
-            formations = [r.best_case(hand) for hand in hands]
+            formations = [r.best_case(hand, special) for hand in hands]
             if compare_formations(formations, p) == p:
                 return (yourCard,)
         return None
@@ -245,7 +246,7 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
                     if otherF == f:
                         hands[1-p].remove(yourCard)
                     hands[p].append(yourCard)
-                    formations = [r.best_case(hand) for hand in hands]
+                    formations = [r.best_case(hand, special) for hand in hands]
                     if compare_formations(formations, p) == p:
                         return yourCard, iFlag
             return None
@@ -259,9 +260,8 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
         return first_not_none([traitor_hurts_you(), traitor_helps_me()])
     
     if card == 'Fo':
-        newSpecial = f.special.copy()
-        newSpecial.append('fog')
-        formations = [r.best_case(f.played[i], newSpecial)
+        special.append('fog')
+        formations = [r.best_case(f.played[i], special)
                       for i in range(N_PLAYERS)]
         if f.slots_left(p) == 0 and compare_formations(formations, p) == p:
             return iFlag
