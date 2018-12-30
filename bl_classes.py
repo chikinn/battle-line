@@ -183,8 +183,6 @@ class Round():
 
     def play_tactics(self, card, target):
         me = self.whoseTurn
-        print(card, target)
-        self.show_flags()
 
         if card == 'Sc':
             assert (type(target), len(target)) == (tuple, 3) # Deck names
@@ -215,8 +213,8 @@ class Round():
 
             if targetDestination != None:
                 f = self.flags[targetDestination]
-                self.update_flag(f, None, True)
                 f.played[endSide].append(targetCard)
+                self.update_flag(f, None, True)
 
         elif card == 'Fo':
             self.flags[target].special.append('fog')
