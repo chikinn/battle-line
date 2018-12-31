@@ -24,7 +24,7 @@ class TactfulPlayer(Player):
         tactics = [c for c in cards if c in TACTICS]
         playTroop = False
 
-        if tactics != [] and r.tacticsAdvantage != 1 - me: # Play tactics!
+        if tactics != [] and r.tacticsAdvantage != 1-me: # Play tactics!
             random.shuffle(tactics)
 
             for card in tactics:

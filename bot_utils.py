@@ -92,8 +92,7 @@ def detect_formation(cards, special=()):
 @functools.lru_cache(maxsize=None)
 def detect_formation_no_wilds(cards, special=()):
     """Same as detect_formation, but assumes no wild tactics present."""
-    straight, triple, flush = check_formation_components(tuple(cards),
-                                                         len(cards))
+    straight, triple, flush = check_formation_components(cards, len(cards))
 
     if 'fog' in special:
         fType = 'sum'
@@ -140,27 +139,21 @@ def is_playable(r, tacticsCard):
             return False
 
     me = r.whoseTurn
-    myEmpty = [i for i, f in enumerate(r.flags)
-               if f.winner == None and len(f.played[me]) < 3]
-
+    myEmpty = [i for i, f in enumerate(r.flags) if f.slots_left(me) > 0]
     if tacticsCard in ('Al', 'Da', 'Sh', 'Co'):
         return myEmpty != []
 
-    yourFull = [i for i, f in enumerate(r.flags)
-                if f.winner == None and len(f.played[1 - me]) > 0]
-    yourTroops = [card for flag in yourFull
-                     for card in r.flags[flag].played[1 - me]
-                         if card not in TACTICS]
-
+    yourFull = [i for i, f in enumerate(r.flags) if f.has_card(1-me)]
     if tacticsCard == 'De':
         return yourFull != []
 
+    yourFullNonTactics = [i for i, f in enumerate(r.flags)
+                          if f.has_card(1-me) and
+                             False in [c in TACTICS for c in f.played[1-me]]]
     if tacticsCard == 'Tr':
-        return yourTroops != [] and myEmpty != []
+        return yourFullNonTactics != [] and myEmpty != []
 
-    myFull = [i for i, f in enumerate(r.flags)
-              if f.winner == None and len(f.played[me]) > 0]
-
+    myFull = [i for i, f in enumerate(r.flags) if f.has_card(me)]
     if tacticsCard == 'Re':
         return myFull != []
 
