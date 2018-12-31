@@ -62,6 +62,6 @@ Tactics
 * **Tactful** (`tactful`) by RK<br>
   Like Kenny but draws and plays only tactics
 * **Sniper** (`sniper`) by RK<br>
-  Copies Naïve, plus Tactics for the coup de grâce
+  Copies Naïve, plus tactics for the coup de grâce
 
 The strongest player is currently **Sniper**, who beats **Naïve** 54.5 ± 0.2% of the time (n = 10^5).
