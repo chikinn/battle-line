@@ -168,13 +168,20 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
     if f.winner is not None:
         return None
     
+    def check_scenario(adjustments):
+        hands = [f.played[i].copy() for i in range(N_PLAYERS)]
+        for a in adjustments:
+            if a['type'] == 'add':
+                hands[a['who']].append(a['card'])
+            elif a['type'] == 'drop':
+                hands[a['who']].remove(a['card'])
+        formations = [r.best_case(hand, special) for hand in hands]
+        return compare_formations(formations, p) == p
+    
     if card in ('Al', 'Da', 'Sh', 'Co'):
         if f.slots_left(p) != 1:
             return None
-        hands = [f.played[i].copy() for i in range(N_PLAYERS)]
-        hands[p].append(card)
-        formations = [r.best_case(hand, special) for hand in hands]
-        if compare_formations(formations, p) == p:
+        if check_scenario([{'type':'add', 'who':p, 'card':card}]):
             return iFlag
     
     if card == 'Re':
@@ -185,10 +192,7 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
             if otherF == f or otherF.winner is not None:
                 continue # Can't redeploy from this flag to itself.
             for myCard in otherF.played[p]:
-                hands = [f.played[i].copy() for i in range(N_PLAYERS)]
-                hands[p].append(myCard)
-                formations = [r.best_case(hand, special) for hand in hands]
-                if compare_formations(formations, p) == p:
+                if check_scenario([{'type':'add', 'who':p, 'card':myCard}]):
                     return myCard, iFlag
 
     # Reuse this logic later for Traitor.
@@ -199,10 +203,7 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
         for yourCard in f.played[1-p]:
             if yourCard in TACTICS and not canTargetTactics:
                 continue
-            hands = [f.played[i].copy() for i in range(N_PLAYERS)]
-            hands[1-p].remove(yourCard)
-            formations = [r.best_case(hand, special) for hand in hands]
-            if compare_formations(formations, p) == p:
+            if check_scenario([{'type':'drop', 'who':1-p, 'card':yourCard}]):
                 return (yourCard,)
         return None
     if card == 'De':
@@ -235,12 +236,10 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
                 for yourCard in otherF.played[1-p]:
                     if yourCard in TACTICS:
                         continue
-                    hands = [f.played[i].copy() for i in range(N_PLAYERS)]
+                    adjs = [{'type':'add', 'who':p, 'card':yourCard}]
                     if otherF == f:
-                        hands[1-p].remove(yourCard)
-                    hands[p].append(yourCard)
-                    formations = [r.best_case(hand, special) for hand in hands]
-                    if compare_formations(formations, p) == p:
+                        adjs.append({'type':'drop', 'who':1-p, 'card':yourCard})
+                    if check_scenario(adjs):
                         return yourCard, iFlag
             return None
 
@@ -253,12 +252,10 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
         return first_not_none([traitor_hurts_you(), traitor_helps_me()])
     
     if card == 'Fo':
-        special = list(special)
-        special.append('fog')
-        special = tuple(special)
-        formations = [r.best_case(f.played[i], special)
-                      for i in range(N_PLAYERS)]
-        if f.slots_left(p) == 0 and compare_formations(formations, p) == p:
+        if f.slots_left(p) != 0 or f.winner is not None:
+            return None
+        special = tuple(list(special) + ['fog'])
+        if check_scenario([]): # No adjustments to formations needed
             return iFlag
     
     return None # Mud and Scout never immediately win a flag.
