@@ -217,11 +217,15 @@ class Round():
                 self.update_flag(f, None, True)
 
         elif card == 'Fo':
+            self.flags[target].special = list(self.flags[target].special)
             self.flags[target].special.append('fog')
+            self.flags[target].special = tuple(self.flags[target].special)
             self.update_flag(self.flags[target], None, True)
 
         elif card == 'Mu':
+            self.flags[target].special = list(self.flags[target].special)
             self.flags[target].special.append('mud')
+            self.flags[target].special = tuple(self.flags[target].special)
             self.update_flag(self.flags[target], None, True)
 
         else: # Al, Da, Co, or Sh
@@ -230,7 +234,7 @@ class Round():
                 self.playedLeader = me
             self.play_troop(card, target) # Play like a troop.
 
-    def best_case(self, cards, special=[]):
+    def best_case(self, cards, special=()):
         """Return the best formation attainable for a group of cards."""
         cards = list(cards)
         cardOptions = [list(tup) for tup in
@@ -247,7 +251,7 @@ class Round():
                     bestFormation = formation
             return bestFormation
 
-    def best_case_no_wilds(self, cards, special=[]):
+    def best_case_no_wilds(self, cards, special=()):
         """Same as best_case, but assumes no wild tactics present."""
         cards = list(cards)
         formationSize = FORMATION_SIZE
@@ -257,7 +261,7 @@ class Round():
             return self.best_fog(cards, formationSize)
 
         if len(cards) == formationSize:
-            return detect_formation(tuple(cards))
+            return detect_formation(tuple(cards), special)
 
         if cards == []:
             if 'mud' in special:
@@ -279,8 +283,9 @@ class Round():
                         if card not in self.cardsLeft['troop']:
                             break
                     else:
-                        return detect_formation(tuple(\
-                                   cards + [value + firstSuit for value in s]))
+                        return detect_formation(\
+                            tuple(cards + [value + firstSuit for value in s]),
+                            special)
 
         if triple:
             formation = copy.copy(cards)
@@ -288,7 +293,7 @@ class Round():
                 if card[0] == firstValue:
                     formation += [card]
                     if len(formation) == formationSize:
-                        return detect_formation(tuple(formation))
+                        return detect_formation(tuple(formation), special)
 
         if flush:
             formation = copy.copy(cards)
@@ -296,7 +301,7 @@ class Round():
                 if value + firstSuit in self.cardsLeft['troop']:
                     formation.append(value + firstSuit)
                     if len(formation) == formationSize:
-                        return detect_formation(tuple(formation))
+                        return detect_formation(tuple(formation), special)
 
         if straight:
             for s in possibleStraights:
@@ -309,24 +314,28 @@ class Round():
                     else: # Value is not available.
                         break
                 else: # All values are available.
-                    return detect_formation(tuple(formation))
+                    return detect_formation(tuple(formation), special)
 
         return self.best_fog(cards, formationSize) # Sum
 
-    def best_fog(self, cards, formationSize):
+    def best_fog(self, cards, formationSize, special=()):
         """Same as best_case_no_wilds, but ignores formations."""
+        if special == ('mud'):
+            special = ('mud', 'fog')
+        else:
+            special = ('fog')
         cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
         nEmptySlots = formationSize - len(cards)
         return detect_formation(tuple(cards + cardsLeft[:nEmptySlots]),
-                                special=('fog'))
+                                special)
 
     def best_empty(self, mud=False): ### TODO: Loop through best_case instead?
         """Find best formation (self.best) still playable at an empty flag."""
-        special = []
+        special = ()
         oldBest = self.best # Exclude better formations from search.
         fSize = FORMATION_SIZE
         if mud:
-            special += ['mud']
+            special = ('mud',)
             oldBest = self.bestMud
             fSize += 1
 
@@ -452,7 +461,7 @@ class Round():
         def __init__(self, initialBest):
             self.played = [[], []]
             self.best = [initialBest, initialBest]
-            self.special = []
+            self.special = ()
             self.winner = None
 
         def has_card(self, p):
@@ -481,8 +490,10 @@ class Round():
                                    if len(formations[p]) == formationSize]
                 
                 if len(finishedPlayers) == N_PLAYERS: # Both players ready 
-                    self.winner = compare_formations(list(map(
-                        detect_formation, formations)), whoseTurn)
+                    self.winner = compare_formations(
+                        [detect_formation(f, self.special)
+                         for f in formations],
+                        whoseTurn)
                 elif len(finishedPlayers) == 1: # One attacker seeks a proof.
                     for p in range(N_PLAYERS):
                         if p not in finishedPlayers: # Defender

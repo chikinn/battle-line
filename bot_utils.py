@@ -171,7 +171,7 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
     Does not consider tactics advantage.
     """
     f = r.flags[iFlag]
-    special = f.special.copy()
+    special = f.special
     if f.winner is not None:
         return None
     
@@ -260,7 +260,9 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
         return first_not_none([traitor_hurts_you(), traitor_helps_me()])
     
     if card == 'Fo':
+        special = list(special)
         special.append('fog')
+        special = tuple(special)
         formations = [r.best_case(f.played[i], special)
                       for i in range(N_PLAYERS)]
         if f.slots_left(p) == 0 and compare_formations(formations, p) == p:
