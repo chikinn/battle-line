@@ -6,7 +6,7 @@ Computer players for a poker-inspired two-player card game
 Intended to run in Python 3 (change the shebang in `bl_wrapper.py`)
 
 ## Example usage
-    $ ./bl_wrapper.py sniper racist
+    $ ./bl_wrapper.py sniper naive 
 
 ## Snippet of example output
     ...
