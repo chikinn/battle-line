@@ -320,10 +320,10 @@ class Round():
 
     def best_fog(self, cards, formationSize, special=()):
         """Same as best_case_no_wilds, but ignores formations."""
-        if special == ('mud'):
+        if special == ('mud',):
             special = ('mud', 'fog')
         else:
-            special = ('fog')
+            special = ('fog',)
         cardsLeft = sorted(self.cardsLeft['troop'], reverse=True) # Desc.
         nEmptySlots = formationSize - len(cards)
         return detect_formation(tuple(cards + cardsLeft[:nEmptySlots]),
