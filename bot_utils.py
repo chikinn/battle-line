@@ -261,19 +261,8 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
     return None # Mud and Scout never immediately win a flag.
 
 def flag_wins_game(r, iFlag, p):
-    flagStates = [f.winner for f in r.flags].copy()
-    flagStates[iFlag] = p
-
-    if flagStates.count(p) == STANDARD_WIN:
-        return True
-
-    breakthroughStreak = 0
-    for i in range(N_FLAGS):
-        if flagStates[i] == p:
-            breakthroughStreak += 1
-        else:
-            breakthroughStreak = 0
-        if breakthroughStreak == BREAKTHROUGH_WIN:
-            return True
-
-    return False
+    oldWinner = r.flags[iFlag].winner
+    r.flags[iFlag].winner = p # Change game to hypothetical state.
+    out = r.check_winner() == p
+    r.flags[iFlag].winner = oldWinner # Reset game state.
+    return out
