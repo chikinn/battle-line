@@ -189,7 +189,7 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
         if f.slots_left(p) != 1:
             return None
         for otherF in r.flags:
-            if otherF == f:
+            if otherF == f or otherF.winner is not None:
                 continue # Can't redeploy from this flag to itself.
             for myCard in otherF.played[p]:
                 hands = [f.played[i].copy() for i in range(N_PLAYERS)]
