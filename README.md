@@ -6,31 +6,46 @@ Computer players for a poker-inspired two-player card game
 Intended to run in Python 3 (change the shebang in `bl_wrapper.py`)
 
 ## Example usage
-    $ ./bl_wrapper.py racist naive
+    $ ./bl_wrapper.py sniper racist
 
 ## Snippet of example output
+    ...
     ---------------------------------------------------------------------------
-    Racist: 1o 2b 2g 1g 7y 0y 6y
-            Passes
-    
-    Naive : 0r 1p 1y 2y 4y 3r 4r
-            Plays 4y at 0
+    Naive : 9g 0r 1b 9b 5b 0b 1y
+            Plays 9g at 1
             Draws troop
     
-                      *                    *      *                    *      *
-                     4y            9r     8b     0g                   4p     4b
-                     6g     7o     5r     7b     3g            2o     2p     5b
-      Naive          5g     7r     6r     9b     8g     9o     4o     6p     3b
+                                           *      *             *      *       
+                     8r                   3o     4y            7o     6p       
+                     8y     7b     6g     4o     5y            8o     4p       
+      Sniper         8b     6b     8g     5o     6y     6o     9o     5p     3r
                      
-                     0      1*     2      3      4      5      6*     7      8 
+                     0*     1*     2*     3      4      5      6      7      8*
                      
-      Racist         1r     8o     8y     7g     6b     7p     3p     4g       
-                     5p     3o     9y            1b     9p     0p     6o       
-                     9g     5o     5y            0b     8p     0o              
+      Naive          1o     2g     4b     9y     9r     9p     2r     1p     3g
+                     0o     0g     3b     7y     7r     7p     1r            3y
+                            9g     2b            4r     8p                     
                                                                                
-                                    *                    *                     
+                                                         *                     
     ---------------------------------------------------------------------------
-    Winner: Naive
+    Sniper: 1g 0p 3p 5g 2o 2p Fo
+            Plays Fo at 0
+            Draws tactics
+    
+                      *                    *      *             *      *       
+                     8r                   3o     4y            7o     6p       
+                     8y     7b     6g     4o     5y            8o     4p       
+      Sniper         8b     6b     8g     5o     6y     6o     9o     5p     3r
+                     
+                   Fo0      1*     2*     3      4      5      6      7      8*
+                     
+      Naive          1o     2g     4b     9y     9r     9p     2r     1p     3g
+                     0o     0g     3b     7y     7r     7p     1r            3y
+                            9g     2b            4r     8p                     
+                                                                               
+                                                         *                     
+    ---------------------------------------------------------------------------
+    Winner: Sniper
 
 ## Available players
 No tactics
@@ -46,3 +61,7 @@ No tactics
 Tactics
 * **Tactful** (`tactful`) by RK<br>
   Like Kenny but draws and plays only tactics
+* **Sniper** (`sniper`) by RK<br>
+  Copies Naïve, plus Tactics for the coup de grâce
+
+The strongest player is currently **Sniper**, who beats **Naïve** 54.5 ± 0.2% of the time (n = 10^5).
