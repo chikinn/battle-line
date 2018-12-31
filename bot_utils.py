@@ -204,7 +204,7 @@ def find_play_to_win_flag(r, card, iFlag, p): # TODO: troop cards
             if yourCard in TACTICS and not canTargetTactics:
                 continue
             if check_scenario([{'type':'drop', 'who':1-p, 'card':yourCard}]):
-                return (yourCard,)
+                return yourCard,
         return None
     if card == 'De':
         return deserter_hurts_you()
